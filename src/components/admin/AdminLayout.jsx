@@ -22,6 +22,8 @@ const NAV_ITEMS = [
 ]
 
 const SIDEBAR_STORAGE_KEY = 'talawan-admin-sidebar-collapsed'
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // auto logout after 5 minutes of inactivity
+const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel']
 
 function BrandMark() {
   return (
@@ -157,6 +159,33 @@ export default function AdminLayout() {
       sub.subscription.unsubscribe()
     }
   }, [navigate])
+
+  // Auto logout after a period of no mouse/keyboard/scroll activity, so an
+  // admin session left open on a shared or public machine doesn't stay
+  // signed in indefinitely.
+  useEffect(() => {
+    if (authState !== 'authed') return
+
+    let timeoutId
+
+    function resetTimer() {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(async () => {
+        await supabase.auth.signOut()
+        navigate('/admin/login', { replace: true })
+      }, IDLE_TIMEOUT_MS)
+    }
+
+    ACTIVITY_EVENTS.forEach((event) =>
+      window.addEventListener(event, resetTimer, { passive: true })
+    )
+    resetTimer()
+
+    return () => {
+      clearTimeout(timeoutId)
+      ACTIVITY_EVENTS.forEach((event) => window.removeEventListener(event, resetTimer))
+    }
+  }, [authState, navigate])
 
   function toggleCollapsed() {
     setCollapsed((prev) => {

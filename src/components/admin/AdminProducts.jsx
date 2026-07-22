@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Plus, Pencil, Trash2, X, Loader2, AlertCircle, Upload, GripVertical,
+  Plus, Pencil, Trash2, X, Loader2, AlertCircle, Upload, GripVertical, RefreshCw,
+  Egg, Bird, TreePalm, Waves,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -11,6 +12,7 @@ const SUPABASE_STORAGE_URL =
 const img = (filename) => (filename ? `${SUPABASE_STORAGE_URL}${filename}` : null)
 
 const ICON_OPTIONS = ['egg', 'bird', 'tree-palm', 'waves']
+const ICON_MAP = { egg: Egg, bird: Bird, 'tree-palm': TreePalm, waves: Waves }
 
 const EMPTY_PRODUCT = {
   name: '',
@@ -32,7 +34,7 @@ function slugifyFilename(file) {
 
 function ProductForm({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial?.id)
-  const [form, setForm] = useState(initial ? { ...initial } : EMPTY_PRODUCT)
+  const [form, setForm] = useState({ ...EMPTY_PRODUCT, ...initial })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -164,15 +166,28 @@ function ProductForm({ initial, onClose, onSaved }) {
 
             <div className="col-span-2 sm:col-span-1">
               <label className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Icon</label>
-              <select
-                value={form.icon_key}
-                onChange={(e) => set('icon_key', e.target.value)}
-                className="mt-1.5 w-full rounded-sm border border-line bg-canvas px-3 py-2.5 text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-              >
-                {ICON_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
+              <div className="mt-1.5 flex items-center gap-2">
+                {ICON_OPTIONS.map((opt) => {
+                  const IconComp = ICON_MAP[opt]
+                  const selected = form.icon_key === opt
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => set('icon_key', opt)}
+                      aria-label={opt}
+                      aria-pressed={selected}
+                      className={`flex h-11 w-11 items-center justify-center rounded-sm border transition-colors ${
+                        selected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-line text-ink-soft hover:border-primary/50 hover:text-primary'
+                      }`}
+                    >
+                      <IconComp className="h-5 w-5" strokeWidth={1.75} />
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Sort order</label>
@@ -211,11 +226,11 @@ function ProductForm({ initial, onClose, onSaved }) {
                   <img
                     src={img(form.image_filename)}
                     alt=""
-                    className="h-16 w-16 rounded-md object-cover"
+                    className="h-44 w-44 rounded-md object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-md bg-ink/5 text-ink-soft">
-                    <Upload className="h-5 w-5" strokeWidth={1.75} />
+                  <div className="flex h-44 w-44 items-center justify-center rounded-md bg-ink/5 text-ink-soft">
+                    <Upload className="h-10 w-10" strokeWidth={1.75} />
                   </div>
                 )}
                 <label className="cursor-pointer rounded-full border border-line px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink transition-colors hover:border-primary hover:text-primary">
@@ -314,10 +329,12 @@ function ProductForm({ initial, onClose, onSaved }) {
 }
 
 export default function AdminProducts() {
+  const PAGE_SIZE = 10
   const [products, setProducts] = useState([])
   const [status, setStatus] = useState('loading')
   const [editing, setEditing] = useState(null) // null = closed, {} = new, {...} = edit
   const [deletingId, setDeletingId] = useState(null)
+  const [page, setPage] = useState(1)
 
   async function load() {
     setStatus('loading')
@@ -333,6 +350,7 @@ export default function AdminProducts() {
     }
     setProducts(data ?? [])
     setStatus('ready')
+    setPage(1)
   }
 
   useEffect(() => {
@@ -351,72 +369,213 @@ export default function AdminProducts() {
     load()
   }
 
+  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE))
+  const paginatedProducts = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold text-ink">Products</h1>
-        <button
-          type="button"
-          onClick={() => setEditing({})}
-          className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2} />
-          Add product
-        </button>
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-px w-6 bg-primary" />
+            <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Our Products</span>
+          </div>
+          <h1 className="font-display text-3xl font-bold text-ink">What comes off the farm.</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={load}
+            disabled={status === 'loading'}
+            aria-label="Refresh"
+            className="flex items-center gap-2 rounded-full border border-line px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${status === 'loading' ? 'animate-spin' : ''}`} strokeWidth={2} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing({ sort_order: products.length + 1 })}
+            className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2} />
+            Add product
+          </button>
+        </div>
       </div>
 
       {status === 'loading' && <p className="text-ink-soft">Loading products…</p>}
       {status === 'error' && <p className="text-red-600">Couldn't load products.</p>}
 
       {status === 'ready' && (
-        <div className="overflow-hidden rounded-[16px] border border-line bg-canvas">
+        <>
           {products.length === 0 && (
-            <p className="p-6 text-center text-ink-soft">No products yet — add your first one.</p>
+            <p className="rounded-[16px] border border-line bg-canvas p-6 text-center text-ink-soft">
+              No products yet — add your first one.
+            </p>
           )}
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="flex items-center gap-4 border-b border-line p-4 last:border-b-0"
-            >
-              {product.image_filename ? (
-                <img src={img(product.image_filename)} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
-              ) : (
-                <div className="h-14 w-14 shrink-0 rounded-md bg-ink/5" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-ink">{product.name}</p>
-                <p className="truncate text-[13px] text-ink-soft">{product.category} · {product.tagline}</p>
+
+          {products.length > 0 && (
+            <>
+              {/* Desktop / tablet table */}
+              <div className="hidden overflow-hidden rounded-[16px] border border-line bg-canvas md:block">
+                <table className="w-full table-fixed text-left">
+                  <colgroup>
+                    <col className="w-[32%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[27%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[13%]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-line bg-ink/[0.02]">
+                      <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Product</th>
+                      <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Category</th>
+                      <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Tagline</th>
+                      <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Icon</th>
+                      <th className="px-4 py-3 text-right text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedProducts.map((product) => {
+                      const IconComp = ICON_MAP[product.icon_key] ?? Egg
+                      return (
+                      <tr
+                        key={product.id}
+                        onClick={() => setEditing(product)}
+                        className="cursor-pointer border-b border-line transition-colors last:border-b-0 hover:bg-ink/[0.03]"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {product.image_filename ? (
+                              <img src={img(product.image_filename)} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />
+                            ) : (
+                              <div className="h-10 w-10 shrink-0 rounded-md bg-ink/5" />
+                            )}
+                            <span className="truncate font-medium text-ink">{product.name}</span>
+                          </div>
+                        </td>
+                        <td className="truncate px-4 py-3 text-[14px] text-ink-soft">{product.category}</td>
+                        <td className="truncate px-4 py-3 text-[14px] text-ink-soft">{product.tagline}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/5 text-ink-soft">
+                            <IconComp className="h-4 w-4" strokeWidth={1.75} />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditing(product)
+                              }}
+                              aria-label="Edit"
+                              className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-ink/5 hover:text-primary"
+                            >
+                              <Pencil className="h-4 w-4" strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(product)
+                              }}
+                              disabled={deletingId === product.id}
+                              aria-label="Delete"
+                              className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                            >
+                              {deletingId === product.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                              ) : (
+                                <Trash2 className="h-4 w-4" strokeWidth={2} />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <button
-                type="button"
-                onClick={() => setEditing(product)}
-                aria-label="Edit"
-                className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-ink/5 hover:text-primary"
-              >
-                <Pencil className="h-4 w-4" strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(product)}
-                disabled={deletingId === product.id}
-                aria-label="Delete"
-                className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
-              >
-                {deletingId === product.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-                ) : (
-                  <Trash2 className="h-4 w-4" strokeWidth={2} />
-                )}
-              </button>
-            </div>
-          ))}
-        </div>
+
+              {/* Mobile card list */}
+              <div className="overflow-hidden rounded-[16px] border border-line bg-canvas md:hidden">
+                {paginatedProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center gap-4 border-b border-line p-4 last:border-b-0"
+                  >
+                    {product.image_filename ? (
+                      <img src={img(product.image_filename)} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
+                    ) : (
+                      <div className="h-14 w-14 shrink-0 rounded-md bg-ink/5" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-ink">{product.name}</p>
+                      <p className="truncate text-[13px] text-ink-soft">{product.category} · {product.tagline}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(product)}
+                      aria-label="Edit"
+                      className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-ink/5 hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4" strokeWidth={2} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(product)}
+                      disabled={deletingId === product.id}
+                      aria-label="Delete"
+                      className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                    >
+                      {deletingId === product.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                      ) : (
+                        <Trash2 className="h-4 w-4" strokeWidth={2} />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {products.length > PAGE_SIZE && (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-[13px] text-ink-soft">
+                    Page {page} of {totalPages}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="rounded-full border border-line px-4 py-2 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-soft"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="rounded-full border border-line px-4 py-2 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-soft"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
+
 
       <AnimatePresence>
         {editing !== null && (
           <ProductForm
-            initial={editing.id ? editing : null}
+            initial={editing}
             onClose={() => setEditing(null)}
             onSaved={() => {
               setEditing(null)

@@ -102,7 +102,13 @@ export default function AdminSettings() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-2xl font-semibold text-ink">Settings</h1>
+      <div className="mb-6">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-px w-6 bg-primary" />
+          <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Account</span>
+        </div>
+        <h1 className="font-display text-3xl font-bold text-ink">Keep your account secure.</h1>
+      </div>
 
       <div className="max-w-md rounded-[16px] border border-line bg-canvas p-6">
         <div className="mb-5 flex items-center gap-2 text-ink">
