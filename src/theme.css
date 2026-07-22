@@ -1,0 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Poppins:wght@400;500;600;700&display=swap");
+
+@theme {
+  /* Canvas & ink */
+  --color-canvas: #f6f4ec;
+  --color-canvas-alt: #efece0;
+  --color-ink: #23291f;
+  --color-ink-soft: #4b5245;
+
+  /* Primary — muted olive-forest, not bright "grass" green */
+  --color-primary: #4a5d3a;
+  --color-primary-dark: #384629;
+  --color-primary-tint: #4a5d3a1a;
+
+  /* Accent — harvest gold, used sparingly */
+  --color-accent: #b08d57;
+  --color-accent-dark: #8f7143;
+
+  /* Hairlines */
+  --color-line: #dad5c7;
+  --color-line-soft: #dad5c74d;
+
+  /* Fonts */
+  --font-display: "Poppins", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-hero: "Bebas Neue", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
