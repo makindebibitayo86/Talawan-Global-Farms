@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, MessageCircle, ArrowUpRight, Egg, Bird, TreePalm, Waves } from 'lucide-react'
 import { buildWhatsAppLink } from '../lib/whatsapp'
+import { supabase } from '../lib/supabaseClient'
 
 // Product photos live in Supabase Storage (public "farm-images" bucket)
 // rather than the codebase — img() resolves a filename to its public URL.
@@ -9,157 +10,133 @@ const SUPABASE_STORAGE_URL =
   'https://bhcyamtmorvzfckmlhfq.supabase.co/storage/v1/object/public/farm-images/'
 const img = (filename) => `${SUPABASE_STORAGE_URL}${filename}`
 
-const PRODUCTS = [
-  {
-    name: 'Day-Old Chicks',
-    category: 'Poultry',
-    icon: Egg,
-    tagline: 'Freshly hatched, ready to rear',
-    description:
-      'Healthy day-old chicks straight from our brooder house — sold in bulk to farmers, hatcheries, and growers building out their own flocks.',
-    details: ['Broiler & layer breeds', 'Available in bulk quantities', 'Handled with care from hatch to crate'],
-    specs: [
-      { label: 'Breed options', value: 'Broiler & layer' },
-      { label: 'Order type', value: 'Bulk & wholesale' },
-      { label: 'Availability', value: 'Contact for current stock' },
-      { label: 'Source', value: 'Our own brooder house' },
-    ],
-    image: img('farm-poultry-dayold.jpg'),
-  },
-  {
-    name: 'Broiler Chickens',
-    category: 'Poultry',
-    icon: Egg,
-    tagline: 'Raised to table weight',
-    description:
-      'Broilers raised on a consistent feeding programme from chick to market size, sold live or by pre-order for bulk buyers.',
-    details: ['Raised to market weight', 'Live sales & pre-orders', 'Consistent feeding programme'],
-    specs: [
-      { label: 'Weight range', value: 'Market-ready' },
-      { label: 'Order type', value: 'Live sales & pre-order' },
-      { label: 'Feeding programme', value: 'Consistent, monitored' },
-      { label: 'Availability', value: 'Contact for current stock' },
-    ],
-    image: img('broiler-chickens.jpg'), // not yet uploaded — see note below
-  },
-  {
-    name: 'Table Eggs',
-    category: 'Poultry',
-    icon: Egg,
-    tagline: 'From our layer flock',
-    description:
-      'Fresh eggs collected daily from actively laying hens, available for wholesale crates or retail quantities.',
-    details: ['Collected daily', 'Wholesale & retail crates', 'From a healthy, well-managed flock'],
-    specs: [
-      { label: 'Crate size', value: 'Standard wholesale crates' },
-      { label: 'Order type', value: 'Wholesale & retail' },
-      { label: 'Collection', value: 'Daily' },
-      { label: 'Availability', value: 'Year-round' },
-    ],
-    image: img('eggs-crates.jpg'), // not yet uploaded — see note below
-  },
-  {
-    name: 'Spent Layers',
-    category: 'Poultry',
-    icon: Egg,
-    tagline: 'End-of-lay hens, sold on',
-    description:
-      'Hens past their peak laying cycle, sold on for meat once egg production winds down — a common secondary product from the layer flock.',
-    details: ['Sold after peak laying cycle', 'Available in bulk', 'Good value for meat buyers'],
-    specs: [
-      { label: 'Stage', value: 'Post peak-lay' },
-      { label: 'Order type', value: 'Bulk sales' },
-      { label: 'Best for', value: 'Meat processing & buyers' },
-      { label: 'Availability', value: 'Seasonal, by flock cycle' },
-    ],
-    image: img('farm-poultry-layers.jpg'),
-  },
-  {
-    name: 'Turkey',
-    category: 'Turkey',
-    icon: Bird,
-    tagline: 'Farm-raised, market-ready',
-    description:
-      'Turkeys reared under open housing and finished to full market weight — sold live or by pre-order for the season.',
-    details: ['Market-ready weight', 'Live sales & pre-orders', 'Raised on an open feeding programme'],
-    specs: [
-      { label: 'Weight class', value: 'Market-ready' },
-      { label: 'Order type', value: 'Live sales & pre-order' },
-      { label: 'Season', value: 'Available seasonally & on request' },
-      { label: 'Housing', value: 'Open-house rearing' },
-    ],
-    image: img('farm-turkey.jpg'), // currently missing from bucket — see note below
-  },
-  {
-    name: 'Palm Seedlings',
-    category: 'Oil Palm Plantation',
-    icon: TreePalm,
-    tagline: 'Nursery-raised & field-ready',
-    description:
-      'Greenhouse-raised oil palm seedlings ready for transplanting, sold to growers expanding or starting their own plantation.',
-    details: ['Greenhouse-raised', 'Field-ready at time of sale', 'Sold individually or in bulk'],
-    specs: [
-      { label: 'Stage', value: 'Field-ready' },
-      { label: 'Order type', value: 'Individual or bulk' },
-      { label: 'Source', value: 'Greenhouse nursery' },
-      { label: 'Availability', value: 'Contact for current stock' },
-    ],
-    image: img('farm-oilpalm-nursery.jpg'),
-  },
-  {
-    name: 'Oil Palm Fruit Bunches',
-    category: 'Oil Palm Plantation',
-    icon: TreePalm,
-    tagline: 'Harvested & trade-ready',
-    description:
-      'Fresh fruit bunches harvested from our own plantation, available for direct trade to mills and buyers.',
-    details: ['Harvested on schedule', 'Sold by the bunch or in bulk', 'Direct plantation-to-buyer trade'],
-    specs: [
-      { label: 'Harvest', value: 'Scheduled harvest' },
-      { label: 'Order type', value: 'Direct trade, bulk' },
-      { label: 'Buyers', value: 'Mills & bulk buyers' },
-      { label: 'Source', value: 'Our own plantation' },
-    ],
-    image: img('farm-oilpalm-fruit.jpg'),
-  },
-  {
-    name: 'Ducks & Geese',
-    category: 'Duck Farming',
-    icon: Waves,
-    tagline: 'Pond-raised waterfowl',
-    description:
-      'Live ducks and geese raised on open water and pasture, sold to farmers and buyers looking for pond-raised stock.',
-    details: ['Pond & pasture-raised', 'Sold live', 'Ducks & geese available'],
-    specs: [
-      { label: 'Stock', value: 'Ducks & geese' },
-      { label: 'Order type', value: 'Live sales' },
-      { label: 'Habitat', value: 'Pond & pasture-raised' },
-      { label: 'Availability', value: 'Contact for current stock' },
-    ],
-    image: img('farm-ducks.jpg'),
-  },
-]
+// Products themselves now live in the `products` table so the admin can add,
+// edit, or reorder them without a code change — this just maps each row's
+// `icon_key` to the actual icon component.
+const ICONS = {
+  egg: Egg,
+  bird: Bird,
+  'tree-palm': TreePalm,
+  waves: Waves,
+}
 
 const cardReveal = {
   hidden: { opacity: 0, y: 24 },
   show: { opacity: 1, y: 0 },
 }
 
+const SKELETON_COUNT = 6
+
+function ProductCardSkeleton() {
+  return (
+    <div
+      className="flex animate-pulse flex-col overflow-hidden rounded-[28px] bg-canvas shadow-sm"
+      aria-hidden="true"
+    >
+      <div className="aspect-[4/3] w-full bg-ink/10" />
+      <div className="flex flex-col p-6 sm:p-7">
+        <div className="space-y-2.5">
+          <div className="h-5 w-3/4 rounded-full bg-ink/10" />
+          <div className="h-3.5 w-1/2 rounded-full bg-ink/10" />
+        </div>
+        <div className="mt-4 space-y-2">
+          <div className="h-3 w-full rounded-full bg-ink/10" />
+          <div className="h-3 w-full rounded-full bg-ink/10" />
+          <div className="h-3 w-2/3 rounded-full bg-ink/10" />
+        </div>
+        <div className="mt-6 h-11 w-11 rounded-full bg-ink/10" />
+      </div>
+    </div>
+  )
+}
+
+function ProductCard({ product, index, onOpen }) {
+  const Icon = ICONS[product.icon_key] ?? Egg
+
+  return (
+    <motion.button
+      type="button"
+      onClick={() => onOpen(product)}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.5, ease: 'easeOut', delay: (index % 6) * 0.07 }}
+      variants={cardReveal}
+      className="group flex flex-col overflow-hidden rounded-[28px] bg-canvas text-left shadow-sm transition-shadow duration-300 hover:shadow-md"
+    >
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden">
+        <img
+          src={img(product.image_filename)}
+          alt={product.name}
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+        />
+        <span className="absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/90 text-primary shadow-sm backdrop-blur-sm">
+          <Icon className="h-4 w-4" strokeWidth={2} />
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col p-6 sm:p-7">
+        <h3 className="font-display text-xl font-bold uppercase leading-tight text-ink sm:text-2xl">
+          {product.name}
+        </h3>
+        <span className="mt-0.5 block text-[13px] font-semibold uppercase tracking-[0.06em] text-accent-dark sm:text-sm">
+          {product.tagline}
+        </span>
+
+        <p className="mt-4 mb-6 line-clamp-3 text-[14px] leading-relaxed text-ink-soft">
+          {product.description}
+        </p>
+
+        <span
+          aria-hidden="true"
+          className="mt-auto flex h-11 w-11 items-center justify-center self-start rounded-full bg-accent text-ink shadow-sm transition-transform duration-300 ease-out group-hover:translate-x-1"
+        >
+          <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+        </span>
+      </div>
+    </motion.button>
+  )
+}
+
 function ProductModal({ product, onClose }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+
+    // iOS Safari still allows background touch-scroll with plain
+    // `overflow: hidden` on the body, so pin it in place instead.
+    const scrollY = window.scrollY
+    const body = document.body
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    }
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
+      body.style.position = prev.position
+      body.style.top = prev.top
+      body.style.left = prev.left
+      body.style.right = prev.right
+      body.style.width = prev.width
+      body.style.overflow = prev.overflow
+      window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' })
     }
   }, [onClose])
 
   if (!product) return null
 
-  const Icon = product.icon
+  const Icon = ICONS[product.icon_key] ?? Egg
   const whatsappHref = buildWhatsAppLink(
     `Hi Talawan Global Farms, I'd like to enquire about ${product.name} — ${product.tagline}.`
   )
@@ -195,7 +172,7 @@ function ProductModal({ product, onClose }) {
         {/* Photo panel */}
         <div className="relative h-64 w-full shrink-0 bg-ink/5 md:h-auto md:w-1/2">
           <img
-            src={product.image}
+            src={img(product.image_filename)}
             alt={product.name}
             className="h-full w-full object-cover"
           />
@@ -281,6 +258,36 @@ function ProductModal({ product, onClose }) {
 
 export default function OurProducts() {
   const [activeProduct, setActiveProduct] = useState(null)
+  const [products, setProducts] = useState([])
+  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadProducts() {
+      setStatus('loading')
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('sort_order', { ascending: true })
+
+      if (cancelled) return
+
+      if (error) {
+        console.error('Failed to load products:', error)
+        setStatus('error')
+        return
+      }
+
+      setProducts(data ?? [])
+      setStatus('ready')
+    }
+
+    loadProducts()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <section id="products" className="bg-canvas-alt py-20 md:py-28">
@@ -304,40 +311,35 @@ export default function OurProducts() {
           </p>
         </div>
 
-        {/* Catalog grid — a deliberately different rhythm from the Our Farms
-            horizontal scroll, since this is a browsable list, not a journey. */}
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
-          {PRODUCTS.map((product, i) => (
-            <motion.button
-              key={product.name}
+        {status === 'error' ? (
+          <div className="flex flex-col items-center gap-3 rounded-[28px] bg-canvas p-10 text-center">
+            <p className="text-[15px] font-medium text-ink-soft">
+              We couldn't load the product catalogue just now.
+            </p>
+            <button
               type="button"
-              onClick={() => setActiveProduct(product)}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: (i % 4) * 0.08 }}
-              variants={cardReveal}
-              className="group flex flex-col text-left"
+              onClick={() => window.location.reload()}
+              className="text-[14px] font-semibold text-primary underline underline-offset-4"
             >
-              <div className="relative overflow-hidden rounded-[20px]">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="aspect-square w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
-                />
-                <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/90 text-primary opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
-                  <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
-                </span>
-              </div>
-              <h3 className="mt-3 font-display text-base font-semibold text-ink sm:text-lg">
-                {product.name}
-              </h3>
-              <span className="mt-0.5 text-[12px] font-medium uppercase tracking-[0.06em] text-accent-dark sm:text-[13px]">
-                {product.tagline}
-              </span>
-            </motion.button>
-          ))}
-        </div>
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-x-0.5 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
+            {status === 'loading'
+              ? Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))
+              : products.map((product, i) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={i}
+                    onOpen={setActiveProduct}
+                  />
+                ))}
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

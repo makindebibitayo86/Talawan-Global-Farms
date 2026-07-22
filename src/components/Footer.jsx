@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import logoIcon from '../assets/logo-icon-color.png'
 import logoWordmark from '../assets/logo-wordmark-color.png'
@@ -181,6 +181,26 @@ function BrandMark() {
 
 function FooterModal({ id, onClose }) {
   const content = MODAL_CONTENT[id]
+
+  useEffect(() => {
+    if (!content) return
+    const scrollY = window.scrollY
+    const { overflow, position, top, width } = document.body.style
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+
+    return () => {
+      document.body.style.overflow = overflow
+      document.body.style.position = position
+      document.body.style.top = top
+      document.body.style.width = width
+      window.scrollTo({ top: scrollY, left: 0, behavior: 'instant' })
+    }
+  }, [content])
+
   if (!content) return null
 
   return (
@@ -268,7 +288,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-line bg-canvas px-[clamp(1rem,3vw,3rem)] pb-12 pt-16 md:pt-24">
+    <footer className="border-t border-line bg-canvas-alt px-[clamp(1rem,3vw,3rem)] pb-12 pt-16 md:pt-24">
       <div className="mx-auto max-w-[1400px]">
         {/* Top: brand + nav columns */}
         <div className="mb-20 grid grid-cols-1 gap-16 md:grid-cols-[1fr_1.6fr] md:gap-24">
