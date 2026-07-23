@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import {
-  Package, Mail, Images, Settings, LogOut, Loader2, ExternalLink,
+  ShoppingBasket, Mail, Images, Settings, LogOut, Loader2, ExternalLink,
   ChevronsLeft, ChevronsRight,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
@@ -15,13 +15,14 @@ function cn(...inputs) {
 }
 
 const NAV_ITEMS = [
-  { to: '/admin/products', label: 'Products', icon: Package },
+  { to: '/admin/products', label: 'Products', icon: ShoppingBasket },
   { to: '/admin/messages', label: 'Messages', icon: Mail },
   { to: '/admin/gallery', label: 'Gallery', icon: Images },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
 const SIDEBAR_STORAGE_KEY = 'talawan-admin-sidebar-collapsed'
+const SITE_TITLE = 'Talawan Global Farms'
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // auto logout after 5 minutes of inactivity
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel']
 
@@ -49,7 +50,7 @@ function Navbar({ onLogout }) {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:text-primary"
+          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-blue-600 transition-colors hover:text-blue-700"
         >
           View site
           <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} />
@@ -57,7 +58,7 @@ function Navbar({ onLogout }) {
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center gap-1.5 rounded-full bg-ink/5 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink transition-colors hover:bg-ink/10"
+          className="flex items-center gap-1.5 rounded-full bg-red-50 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-100"
         >
           <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
           Log out
@@ -80,7 +81,7 @@ function Sidebar({ collapsed, onToggle }) {
           <NavLink
             key={to}
             to={to}
-            title={collapsed ? label : undefined}
+            title={label}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
@@ -100,6 +101,7 @@ function Sidebar({ collapsed, onToggle }) {
           type="button"
           onClick={onToggle}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={cn(
             'flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
             collapsed && 'justify-center px-0'
@@ -132,11 +134,19 @@ function AdminFooter() {
 
 export default function AdminLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [authState, setAuthState] = useState('checking') // checking | authed
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
   })
+
+  // Reflect the current admin section in the browser tab, instead of
+  // leaving it on the public site's title.
+  useEffect(() => {
+    const activeItem = NAV_ITEMS.find((item) => location.pathname.startsWith(item.to))
+    document.title = activeItem ? `${activeItem.label} — Admin` : `Admin — ${SITE_TITLE}`
+  }, [location.pathname])
 
   useEffect(() => {
     let cancelled = false

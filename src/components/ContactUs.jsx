@@ -1,45 +1,49 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { Phone, Mail, MapPin, Send, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { sendContactMessage } from '../lib/emailjs'
 import { saveContactMessage } from '../lib/contactMessages'
+import { fetchSectionContent } from '../lib/siteContent'
 
 function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-// Update these with the farm's real details.
-const CONTACT_INFO = [
-  {
-    icon: Phone,
-    label: 'Call us',
-    values: [
-      { text: '0916 530 7582', href: 'tel:+2349165307582' },
-      { text: '0808 150 3334', href: 'tel:+2348081503334' },
-    ],
-  },
-  {
-    icon: Mail,
-    label: 'Email us',
-    values: [{ text: 'talawanfarms@gmail.com', href: 'mailto:talawanfarms@gmail.com' }],
-  },
-  {
-    icon: MapPin,
-    label: 'Visit the farm',
-    values: [
-      {
-        text: 'Talawan Global Farms, Ibadan, Oyo State, Nigeria',
-        href: 'https://maps.google.com/?q=Talawan+Global+Farms+Ibadan+Oyo+State',
-      },
-    ],
-  },
-]
+const SECTION = 'contact'
 
-// Swap the `q=` value for the farm's real address — this embed works
-// without an API key.
-const MAP_EMBED_SRC = 'https://www.google.com/maps?q=Lagos,Nigeria&output=embed'
+// Same values as the admin defaults in ContactSettingsTab.jsx — keeps this
+// section looking right on first paint, before the site_content fetch
+// resolves, and acts as the fallback if a row is ever missing.
+const CONTACT_DEFAULTS = {
+  'contact.eyebrow': 'Get in Touch',
+  'contact.heading': "Got a question?\nWe're listening.",
+  'contact.paragraph':
+    "Order enquiries, bulk supply, or a visit to the farm — send a note and we'll get back to you shortly.",
+  'contact.phones': JSON.stringify(['0916 530 7582', '0808 150 3334']),
+  'contact.email': 'talawanfarms@gmail.com',
+  'contact.address': 'Talawan Global Farms, Ibadan, Oyo State, Nigeria',
+  'contact.map_query': 'Talawan+Global+Farms+Ibadan+Oyo+State',
+}
+
+function safeParseArray(value) {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+// Turns a local Nigerian number like "0916 530 7582" into "+2349165307582"
+// for the tel: link — same convention the previous hardcoded hrefs used.
+function toTelHref(phone) {
+  const digits = phone.replace(/\D/g, '')
+  const withoutLeadingZero = digits.replace(/^0/, '')
+  return `tel:+234${withoutLeadingZero}`
+}
 
 const EMPTY_FORM = { name: '', email: '', message: '' }
 
@@ -63,6 +67,45 @@ const fadeInFromRight = {
 export default function ContactUs() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('idle') // idle | sending | success | error
+  const [content, setContent] = useState(CONTACT_DEFAULTS)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSectionContent(SECTION, CONTACT_DEFAULTS).then((data) => {
+      if (!cancelled) setContent(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const eyebrow = content['contact.eyebrow']
+  const headingLines = content['contact.heading'].split('\n')
+  const paragraph = content['contact.paragraph']
+  const phones = safeParseArray(content['contact.phones'])
+  const email = content['contact.email']
+  const address = content['contact.address']
+  const mapQuery = content['contact.map_query']
+
+  const CONTACT_INFO = [
+    {
+      icon: Phone,
+      label: 'Call us',
+      values: phones.map((text) => ({ text, href: toTelHref(text) })),
+    },
+    {
+      icon: Mail,
+      label: 'Email us',
+      values: [{ text: email, href: `mailto:${email}` }],
+    },
+    {
+      icon: MapPin,
+      label: 'Visit the farm',
+      values: [{ text: address, href: `https://maps.google.com/?q=${mapQuery}` }],
+    },
+  ]
+
+  const mapEmbedSrc = `https://www.google.com/maps?q=${mapQuery}&output=embed`
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -118,19 +161,21 @@ export default function ContactUs() {
             <div className="mb-6 flex items-center gap-3">
               <span className="h-px w-10 bg-accent" aria-hidden="true" />
               <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-primary">
-                Get in Touch
+                {eyebrow}
               </span>
             </div>
 
             <h2 className="max-w-xl font-display text-5xl font-bold leading-[1.1] text-ink sm:text-6xl">
-              Got a question?
-              <br />
-              We're listening.
+              {headingLines.map((line, idx) => (
+                <span key={idx}>
+                  {line}
+                  {idx < headingLines.length - 1 && <br />}
+                </span>
+              ))}
             </h2>
 
             <p className="mt-6 max-w-lg text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
-              Order enquiries, bulk supply, or a visit to the farm — send a
-              note and we'll get back to you shortly.
+              {paragraph}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-10 max-w-lg space-y-5">
@@ -275,7 +320,7 @@ export default function ContactUs() {
             <div className="flex-1 overflow-hidden rounded-[20px] shadow-lg">
               <iframe
                 title="Talawan Global Farms location"
-                src={MAP_EMBED_SRC}
+                src={mapEmbedSrc}
                 className="h-full min-h-[220px] w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
