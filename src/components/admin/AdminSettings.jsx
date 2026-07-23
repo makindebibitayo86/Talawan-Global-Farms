@@ -1,8 +1,19 @@
-import { useState } from 'react'
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, KeyRound, Check, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 
 const EMPTY_FORM = { currentPassword: '', newPassword: '', confirmPassword: '' }
+
+const RULES = [
+  { key: 'length', label: 'At least 8 characters', test: (v) => v.length >= 8 },
+  { key: 'upper', label: 'One uppercase letter', test: (v) => /[A-Z]/.test(v) },
+  { key: 'lower', label: 'One lowercase letter', test: (v) => /[a-z]/.test(v) },
+  { key: 'number', label: 'One number', test: (v) => /[0-9]/.test(v) },
+]
+
+function getPasswordChecks(value) {
+  return RULES.map((rule) => ({ ...rule, passed: rule.test(value) }))
+}
 
 function PasswordField({ id, label, value, onChange, show, onToggleShow, autoComplete }) {
   return (
@@ -34,11 +45,73 @@ function PasswordField({ id, label, value, onChange, show, onToggleShow, autoCom
   )
 }
 
+// Strength meter + live requirements checklist for the new password field.
+function PasswordStrength({ value }) {
+  const checks = useMemo(() => getPasswordChecks(value), [value])
+  const passedCount = checks.filter((c) => c.passed).length
+
+  const strength =
+    value.length === 0
+      ? { label: '', width: '0%', color: 'bg-line' }
+      : passedCount <= 1
+      ? { label: 'Weak', width: '33%', color: 'bg-red-500' }
+      : passedCount <= 3
+      ? { label: 'Fair', width: '66%', color: 'bg-amber-500' }
+      : { label: 'Strong', width: '100%', color: 'bg-primary' }
+
+  return (
+    <div className="mt-3 space-y-3">
+      <div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-canvas-alt">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+            style={{ width: strength.width }}
+          />
+        </div>
+        {strength.label && (
+          <p
+            className={`mt-1.5 text-[12px] font-medium ${
+              strength.label === 'Weak'
+                ? 'text-red-600'
+                : strength.label === 'Fair'
+                ? 'text-amber-600'
+                : 'text-primary'
+            }`}
+          >
+            {strength.label} password
+          </p>
+        )}
+      </div>
+
+      <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+        {checks.map((check) => (
+          <li
+            key={check.key}
+            className={`flex items-center gap-1.5 text-[12px] transition-colors ${
+              check.passed ? 'text-primary' : 'text-ink-soft'
+            }`}
+          >
+            {check.passed ? (
+              <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+            ) : (
+              <X className="h-3.5 w-3.5 shrink-0 opacity-40" strokeWidth={2} />
+            )}
+            {check.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export default function AdminSettings() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showFields, setShowFields] = useState({ current: false, next: false, confirm: false })
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
   const [errorMsg, setErrorMsg] = useState('')
+
+  const passwordChecks = useMemo(() => getPasswordChecks(form.newPassword), [form.newPassword])
+  const isPasswordStrongEnough = passwordChecks.every((c) => c.passed)
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -54,9 +127,9 @@ export default function AdminSettings() {
     setStatus('submitting')
     setErrorMsg('')
 
-    if (form.newPassword.length < 8) {
+    if (!isPasswordStrongEnough) {
       setStatus('error')
-      setErrorMsg('New password must be at least 8 characters.')
+      setErrorMsg('New password must meet all the requirements below.')
       return
     }
     if (form.newPassword !== form.confirmPassword) {
@@ -126,15 +199,20 @@ export default function AdminSettings() {
             onToggleShow={() => toggleShow('current')}
             autoComplete="current-password"
           />
-          <PasswordField
-            id="newPassword"
-            label="New password"
-            value={form.newPassword}
-            onChange={handleChange}
-            show={showFields.next}
-            onToggleShow={() => toggleShow('next')}
-            autoComplete="new-password"
-          />
+
+          <div>
+            <PasswordField
+              id="newPassword"
+              label="New password"
+              value={form.newPassword}
+              onChange={handleChange}
+              show={showFields.next}
+              onToggleShow={() => toggleShow('next')}
+              autoComplete="new-password"
+            />
+            <PasswordStrength value={form.newPassword} />
+          </div>
+
           <PasswordField
             id="confirmPassword"
             label="Confirm new password"
@@ -160,7 +238,7 @@ export default function AdminSettings() {
 
           <button
             type="submit"
-            disabled={status === 'submitting'}
+            disabled={status === 'submitting' || !isPasswordStrongEnough}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
           >
             {status === 'submitting' && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
