@@ -1,88 +1,50 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Egg, Bird, TreePalm, Waves, X, MessageCircle, PlayCircle, ArrowUpRight } from 'lucide-react'
+import { Egg, Bird, TreePalm, Waves, X, MessageCircle, PlayCircle, ArrowUpRight, Loader2 } from 'lucide-react'
 import { buildWhatsAppLink } from '../lib/whatsapp'
+import { supabase } from '../lib/supabaseClient'
 
-// Farm photos live in Supabase Storage (public "farm-images" bucket) rather
-// than the codebase — img() just resolves a filename to its public URL.
-const SUPABASE_STORAGE_URL =
-  'https://bhcyamtmorvzfckmlhfq.supabase.co/storage/v1/object/public/farm-images/'
-const img = (filename) => `${SUPABASE_STORAGE_URL}${filename}`
+// Maps the icon_key stored per-farm in site_content to the actual lucide
+// component. Keep in sync with the icon choices offered in FarmsSettingsTab.
+const ICONS = { egg: Egg, bird: Bird, 'tree-palm': TreePalm, waves: Waves }
 
-const FARMS = [
-  {
-    name: 'Poultry',
-    icon: Egg,
-    tagline: 'Day-old chicks, broilers & layers',
-    detail:
-      "Our poultry division runs the full lifecycle in-house. It starts in a climate-controlled brooder house, where thousands of day-old chicks are raised under close watch. As they mature, birds are split into two paths: layer flocks that go on to egg production, and broilers finished for the table.",
-    process: [
-      'Day-old chick brooding in a climate-controlled house',
-      'Feed, water & health monitoring through grow-out',
-      'Layer flock management for egg production',
-      'Broiler finishing to market weight',
-    ],
-    products: ['Day-old chicks', 'Fresh eggs', 'Broiler chickens (table birds)'],
-    images: [
-      img('farm-poultry-brooder.jpg'),
-      img('farm-poultry-dayold.jpg'),
-      img('farm-poultry-layers.jpg'),
-    ],
-    video: null, // e.g. '/videos/farm-poultry.mp4'
-  },
-  {
-    name: 'Turkey',
-    icon: Bird,
-    tagline: 'Open-house turkey rearing',
-    detail:
-      'Turkeys are raised the slow way, under open housing with room to roam and grow to full market size — no shortcuts, just steady feeding and flock care until they’re ready.',
-    process: ['Free-range rearing under open housing', 'Daily feed & flock health monitoring'],
-    products: ['Market-ready turkeys', 'Live turkey sales'],
-    images: [
-      img('farm-turkey.jpg'),
-      img('farm-turkey-2.jpg'),
-      img('farm-turkey-3.jpg'),
-    ],
-    video: null,
-  },
-  {
-    name: 'Oil Palm Plantation',
-    icon: TreePalm,
-    tagline: 'Nursery to fruit bunch',
-    detail:
-      'Every palm on the plantation starts as a seedling in our greenhouse nursery. Once established, seedlings are field-planted and cultivated into full groves, which mature to produce the fruit bunches we harvest and trade.',
-    process: [
-      'Greenhouse seedling nursery',
-      'Field planting & cultivation of palm groves',
-      'Fruit bunch harvesting',
-    ],
-    products: ['Palm seedlings', 'Oil palm fruit bunches', 'Palm produce trade'],
-    images: [
-      img('farm-oilpalm-nursery.jpg'),
-      img('farm-oilpalm-tree.jpg'),
-      img('farm-oilpalm-fruit.jpg'),
-    ],
-    video: null,
-  },
-  {
-    name: 'Duck Farming',
-    icon: Waves,
-    tagline: 'Pond-raised waterfowl',
-    detail:
-      'A fenced pond shaded by mature trees gives our ducks and geese an open-water home where they can roam and swim freely — closer to a natural habitat than a standard pen.',
-    process: [
-      'Pond & fenced enclosure management',
-      'Daily flock care across a shaded, natural habitat',
-    ],
-    products: ['Live ducks & geese'],
-    images: [
-      img('farm-ducks.jpg'),
-      img('farm-ducks-2.jpg'),
-      img('farm-ducks-3.jpg'),
-    ],
-    video: null,
-  },
-]
+function safeParseArray(value) {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+// Farm content is admin-editable and lives in the "site_content" table
+// (section = 'farms'), same key-value convention as hero/about. A
+// "farms.order" row holds the ordered list of farm slugs; each farm's own
+// fields are namespaced "farms.<slug>.<field>". This turns that flat
+// key-value map into the row shape the rest of this component expects.
+function buildFarmsFromRows(rows) {
+  const byKey = {}
+  for (const row of rows) byKey[row.key] = row.value
+
+  const order = safeParseArray(byKey['farms.order'])
+
+  return order.map((slug) => {
+    const get = (field) => byKey[`farms.${slug}.${field}`]
+    const IconComponent = ICONS[get('icon_key')] || Egg
+    return {
+      slug,
+      name: get('name') || '',
+      icon: IconComponent,
+      tagline: get('tagline') || '',
+      detail: get('detail') || '',
+      process: safeParseArray(get('process')),
+      products: safeParseArray(get('products')),
+      images: safeParseArray(get('images')),
+      video: get('video_url') || null,
+    }
+  })
+}
 
 const cardReveal = {
   hidden: { opacity: 0, y: 32 },
@@ -326,6 +288,39 @@ function FarmModal({ farm, onClose }) {
 
 export default function OurFarms() {
   const [activeFarm, setActiveFarm] = useState(null)
+  const [farms, setFarms] = useState([])
+  const [header, setHeader] = useState({ label: 'Our Farms', heading: '', intro: '' })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadFarms() {
+      const { data, error } = await supabase
+        .from('site_content')
+        .select('key, value')
+        .eq('section', 'farms')
+
+      if (cancelled) return
+      if (!error && data) {
+        setFarms(buildFarmsFromRows(data))
+
+        const byKey = {}
+        for (const row of data) byKey[row.key] = row.value
+        setHeader({
+          label: byKey['farms.section_label'] || 'Our Farms',
+          heading: byKey['farms.heading'] || '',
+          intro: byKey['farms.intro'] || '',
+        })
+      }
+      setLoading(false)
+    }
+
+    loadFarms()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <section id="farms" className="bg-canvas py-20 md:py-28">
@@ -335,19 +330,19 @@ export default function OurFarms() {
           <div className="flex items-center gap-3">
             <span className="h-px w-10 bg-accent" aria-hidden="true" />
             <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-primary">
-              Our Farms
+              {header.label}
             </span>
           </div>
           <h2 className="font-display text-5xl font-bold leading-[1.1] text-ink sm:text-6xl">
-            Four farms.
-            <br />
-            One family standard.
+            {header.heading.split('\n').map((line, idx, arr) => (
+              <span key={idx}>
+                {line}
+                {idx < arr.length - 1 && <br />}
+              </span>
+            ))}
           </h2>
           <p className="max-w-xl text-justify text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
-            Talawan isn't only a poultry brand — it's a small, hands-on
-            operation spanning birds, land, and water. Poultry, turkey,
-            oil palm, and ducks all answer to the same family, the same
-            standard. Tap a farm to see more and send an enquiry.
+            {header.intro}
           </p>
         </div>
       </div>
@@ -356,14 +351,25 @@ export default function OurFarms() {
           moment: (01) image right / story left, then flips each row down. */}
       <div className="mx-auto max-w-6xl px-3 md:px-6">
         <div className="h-px w-full bg-ink/10" aria-hidden="true" />
-        {FARMS.map((farm, i) => {
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-20 text-ink-soft">
+            <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.75} />
+            <span className="text-[14px] font-medium">Loading farms…</span>
+          </div>
+        )}
+        {!loading && farms.length === 0 && (
+          <div className="py-20 text-center text-[14px] font-medium text-ink-soft">
+            Farm details coming soon.
+          </div>
+        )}
+        {farms.map((farm, i) => {
           const Icon = farm.icon
           const [hero, ...rest] = farm.images
           const number = String(i + 1).padStart(2, '0')
           const imageOnRight = i % 2 === 0
 
           return (
-            <div key={farm.name}>
+            <div key={farm.slug}>
               <motion.button
                 type="button"
                 onClick={() => setActiveFarm(farm)}
@@ -445,7 +451,7 @@ export default function OurFarms() {
                 </div>
               </motion.button>
 
-              {i < FARMS.length - 1 && (
+              {i < farms.length - 1 && (
                 <div className="h-px w-full bg-ink/10" aria-hidden="true" />
               )}
             </div>

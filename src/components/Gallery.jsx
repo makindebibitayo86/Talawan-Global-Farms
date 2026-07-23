@@ -1,5 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { fetchSectionContent } from '../lib/siteContent'
+
+const CONTENT_SECTION = 'gallery'
+const CONTENT_DEFAULTS = {
+  'gallery.eyebrow': 'Gallery',
+  'gallery.heading': 'A look into our world',
+  'gallery.paragraph': 'From sunrise in the fields to the products that make it to your table.',
+}
 
 // Same public bucket OurProducts.jsx reads from — every farm and product
 // photo lives here as a flat file list (no folders), so the gallery is
@@ -46,6 +54,17 @@ function Gallery() {
   const [isDragging, setIsDragging] = useState(false)
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
+  const [content, setContent] = useState(CONTENT_DEFAULTS)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSectionContent(CONTENT_SECTION, CONTENT_DEFAULTS).then((data) => {
+      if (!cancelled) setContent(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const resumeTimer = useRef(null)
   const trackRef = useRef(null)
@@ -256,15 +275,15 @@ function Gallery() {
         <div className="flex items-center gap-3">
           <span className="h-px w-10 bg-accent" aria-hidden="true" />
           <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-primary">
-            Gallery
+            {content['gallery.eyebrow']}
           </span>
           <span className="h-px w-10 bg-accent" aria-hidden="true" />
         </div>
         <h2 className="font-display text-5xl font-bold leading-[1.1] text-ink sm:text-6xl">
-          A look into our world
+          {content['gallery.heading']}
         </h2>
         <p className="max-w-xl text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
-          From sunrise in the fields to the products that make it to your table.
+          {content['gallery.paragraph']}
         </p>
       </div>
 

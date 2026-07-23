@@ -5,6 +5,7 @@ import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import logoIcon from '../assets/logo-icon-color.png'
 import logoWordmark from '../assets/logo-wordmark-color.png'
+import { fetchSectionContent } from '../lib/siteContent'
 
 const NAV_LINKS = [
   { label: 'Home', href: '#home' },
@@ -13,6 +14,21 @@ const NAV_LINKS = [
   { label: 'Products', href: '#products' },
   { label: 'Gallery', href: '#gallery' },
 ]
+
+// Section key for this component's row group in `site_content`.
+const SECTION = 'hero'
+
+// Fallback content — used until Supabase responds, and for any key
+// the admin hasn't set yet. Keeps the current hardcoded copy/assets
+// as the default so the site never regresses if a row is missing.
+const HERO_DEFAULTS = {
+  'hero.heading': 'The Next Generation of Farming is Here',
+  'hero.cta_label': 'Get in Touch',
+  'hero.video_url': '/videos/hero-farm.mp4',
+  'hero.poster_url': '/videos/hero-poster.jpg',
+  'hero.logo_icon_url': logoIcon,
+  'hero.logo_wordmark_url': logoWordmark,
+}
 
 /**
  * Notch geometry — measured directly from the reference frame (1536x1024 mockup),
@@ -94,6 +110,19 @@ export default function HeroShell() {
   const heroRef = useRef(null)
   const [heroSize, setHeroSize] = useState({ width: 0, height: 0 })
   const [isDesktop, setIsDesktop] = useState(false)
+  const [content, setContent] = useState(HERO_DEFAULTS)
+
+  // Pull editable copy/assets from Supabase. Falls back to
+  // HERO_DEFAULTS on error or for any key not yet set by the admin.
+  useEffect(() => {
+    let cancelled = false
+    fetchSectionContent(SECTION, HERO_DEFAULTS).then((data) => {
+      if (!cancelled) setContent(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Measure the card's own rect (excluding the notch) so the clip path
   // can be rebuilt in real pixels whenever the layout changes.
@@ -169,10 +198,10 @@ export default function HeroShell() {
             muted
             loop
             playsInline
-            poster="/videos/hero-poster.jpg"
+            poster={content['hero.poster_url']}
             className="absolute inset-0 h-full w-full object-cover"
           >
-            <source src="/videos/hero-farm.mp4" type="video/mp4" />
+            <source src={content['hero.video_url']} type="video/mp4" />
           </video>
           {/* Dark overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-ink/35 to-ink/75" />
@@ -193,9 +222,9 @@ export default function HeroShell() {
               className="flex shrink-0 items-center gap-3 drop-shadow-md"
               aria-label="Talawan Global Farms home"
             >
-              <img src={logoIcon} alt="" className="h-9 w-auto object-contain md:h-20" />
+              <img src={content['hero.logo_icon_url']} alt="" className="h-9 w-auto object-contain md:h-20" />
               <img
-                src={logoWordmark}
+                src={content['hero.logo_wordmark_url']}
                 alt="Talawan Global Farms"
                 className="h-6 w-auto object-contain md:h-11"
               />
@@ -230,7 +259,7 @@ export default function HeroShell() {
                   href="#get-in-touch"
                   className="group inline-flex items-center gap-3 rounded-full bg-canvas py-1.5 pl-5 pr-1.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink transition-colors hover:bg-white"
                 >
-                  Get in Touch
+                  {content['hero.cta_label']}
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-canvas transition-colors group-hover:bg-primary">
                     <ArrowRight className="h-4 w-4" strokeWidth={2} />
                   </span>
@@ -282,7 +311,7 @@ export default function HeroShell() {
                     onClick={() => setMobileOpen(false)}
                     className="mt-3 inline-flex items-center justify-center rounded-sm bg-primary px-5 py-3 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark"
                   >
-                    Get in Touch
+                    {content['hero.cta_label']}
                   </a>
                 </nav>
               </motion.div>
@@ -294,7 +323,7 @@ export default function HeroShell() {
         <div className="relative z-10 flex h-full items-center px-6 lg:px-10">
           <div className="mx-auto flex w-full max-w-5xl flex-col items-center text-center">
             <h1 className="max-w-4xl font-hero text-3xl leading-[1.12] text-white sm:text-4xl md:text-6xl lg:text-7xl">
-              The Next Generation of Farming is Here
+              {content['hero.heading']}
             </h1>
           </div>
         </div>

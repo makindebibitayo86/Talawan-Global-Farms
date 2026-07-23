@@ -1,6 +1,11 @@
 import { useState, useMemo } from 'react'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, KeyRound, Check, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import HeroSettingsTab from './HeroSettingsTab'
+import AboutSettingsTab from './AboutSettingsTab'
+import FarmsSettingsTab from './FarmsSettingsTab'
+import ProductsSettingsTab from './ProductsSettingsTab'
+import GallerySettingsTab from './GallerySettingsTab'
 
 const EMPTY_FORM = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
@@ -9,6 +14,17 @@ const RULES = [
   { key: 'upper', label: 'One uppercase letter', test: (v) => /[A-Z]/.test(v) },
   { key: 'lower', label: 'One lowercase letter', test: (v) => /[a-z]/.test(v) },
   { key: 'number', label: 'One number', test: (v) => /[0-9]/.test(v) },
+]
+
+// One entry per site section. Adding a new editable section later is
+// just: build a <XSettingsTab />, add it here.
+const TABS = [
+  { key: 'hero', label: 'Hero' },
+  { key: 'about', label: 'About' },
+  { key: 'farms', label: 'Farms' },
+  { key: 'products', label: 'Products' },
+  { key: 'gallery', label: 'Gallery' },
+  { key: 'account', label: 'Password' },
 ]
 
 function getPasswordChecks(value) {
@@ -104,7 +120,7 @@ function PasswordStrength({ value }) {
   )
 }
 
-export default function AdminSettings() {
+function AccountTab() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [showFields, setShowFields] = useState({ current: false, next: false, confirm: false })
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
@@ -174,78 +190,109 @@ export default function AdminSettings() {
   }
 
   return (
+    <div className="max-w-md rounded-[16px] border border-line bg-canvas p-6">
+      <div className="mb-5 flex items-center gap-2 text-ink">
+        <KeyRound className="h-4 w-4 text-primary" strokeWidth={2} />
+        <h2 className="font-medium">Change password</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <PasswordField
+          id="currentPassword"
+          label="Current password"
+          value={form.currentPassword}
+          onChange={handleChange}
+          show={showFields.current}
+          onToggleShow={() => toggleShow('current')}
+          autoComplete="current-password"
+        />
+
+        <div>
+          <PasswordField
+            id="newPassword"
+            label="New password"
+            value={form.newPassword}
+            onChange={handleChange}
+            show={showFields.next}
+            onToggleShow={() => toggleShow('next')}
+            autoComplete="new-password"
+          />
+          <PasswordStrength value={form.newPassword} />
+        </div>
+
+        <PasswordField
+          id="confirmPassword"
+          label="Confirm new password"
+          value={form.confirmPassword}
+          onChange={handleChange}
+          show={showFields.confirm}
+          onToggleShow={() => toggleShow('confirm')}
+          autoComplete="new-password"
+        />
+
+        {status === 'error' && (
+          <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+            <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            {errorMsg}
+          </p>
+        )}
+        {status === 'success' && (
+          <p className="flex items-center gap-2 text-sm font-medium text-primary">
+            <CheckCircle2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            Password updated.
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={status === 'submitting' || !isPasswordStrongEnough}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {status === 'submitting' && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
+          {status === 'submitting' ? 'Updating' : 'Update password'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export default function AdminSettings() {
+  const [activeTab, setActiveTab] = useState('hero')
+
+  return (
     <div>
       <div className="mb-6">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-px w-6 bg-primary" />
-          <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Account</span>
+          <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Settings</span>
         </div>
-        <h1 className="font-display text-3xl font-bold text-ink">Keep your account secure.</h1>
+        <h1 className="font-display text-3xl font-bold text-ink">Manage your site.</h1>
       </div>
 
-      <div className="max-w-md rounded-[16px] border border-line bg-canvas p-6">
-        <div className="mb-5 flex items-center gap-2 text-ink">
-          <KeyRound className="h-4 w-4 text-primary" strokeWidth={2} />
-          <h2 className="font-medium">Change password</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <PasswordField
-            id="currentPassword"
-            label="Current password"
-            value={form.currentPassword}
-            onChange={handleChange}
-            show={showFields.current}
-            onToggleShow={() => toggleShow('current')}
-            autoComplete="current-password"
-          />
-
-          <div>
-            <PasswordField
-              id="newPassword"
-              label="New password"
-              value={form.newPassword}
-              onChange={handleChange}
-              show={showFields.next}
-              onToggleShow={() => toggleShow('next')}
-              autoComplete="new-password"
-            />
-            <PasswordStrength value={form.newPassword} />
-          </div>
-
-          <PasswordField
-            id="confirmPassword"
-            label="Confirm new password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            show={showFields.confirm}
-            onToggleShow={() => toggleShow('confirm')}
-            autoComplete="new-password"
-          />
-
-          {status === 'error' && (
-            <p className="flex items-center gap-2 text-sm font-medium text-red-600">
-              <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-              {errorMsg}
-            </p>
-          )}
-          {status === 'success' && (
-            <p className="flex items-center gap-2 text-sm font-medium text-primary">
-              <CheckCircle2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-              Password updated.
-            </p>
-          )}
-
+      <div className="mb-6 flex flex-wrap gap-1 border-b border-line">
+        {TABS.map((tab) => (
           <button
-            type="submit"
-            disabled={status === 'submitting' || !isPasswordStrongEnough}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70"
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={`relative px-4 py-3 text-[13px] font-medium uppercase tracking-[0.06em] transition-colors ${
+              activeTab === tab.key ? 'text-primary' : 'text-ink-soft hover:text-ink'
+            }`}
           >
-            {status === 'submitting' && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
-            {status === 'submitting' ? 'Updating' : 'Update password'}
+            {tab.label}
+            {activeTab === tab.key && (
+              <span className="absolute inset-x-0 -bottom-px h-[2px] bg-primary" />
+            )}
           </button>
-        </form>
+        ))}
       </div>
+
+      {activeTab === 'hero' && <HeroSettingsTab />}
+      {activeTab === 'about' && <AboutSettingsTab />}
+      {activeTab === 'farms' && <FarmsSettingsTab />}
+      {activeTab === 'products' && <ProductsSettingsTab />}
+      {activeTab === 'gallery' && <GallerySettingsTab />}
+      {activeTab === 'account' && <AccountTab />}
     </div>
   )
 }

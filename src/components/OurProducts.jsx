@@ -3,6 +3,16 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { X, MessageCircle, ArrowUpRight, Egg, Bird, TreePalm, Waves } from 'lucide-react'
 import { buildWhatsAppLink } from '../lib/whatsapp'
 import { supabase } from '../lib/supabaseClient'
+import { fetchSectionContent } from '../lib/siteContent'
+
+const SECTION = 'products'
+
+const CONTENT_DEFAULTS = {
+  'products.eyebrow': 'Our Products',
+  'products.heading': 'What comes off the farm.',
+  'products.paragraph':
+    'Day-old chicks, table eggs, market-ready birds, palm seedlings, fruit bunches, and pond-raised waterfowl — available for bulk and retail purchase. Tap a product to see more and enquire.',
+}
 
 // Product photos live in Supabase Storage (public "farm-images" bucket)
 // rather than the codebase — img() resolves a filename to its public URL.
@@ -259,7 +269,18 @@ function ProductModal({ product, onClose }) {
 export default function OurProducts() {
   const [activeProduct, setActiveProduct] = useState(null)
   const [products, setProducts] = useState([])
+  const [content, setContent] = useState(CONTENT_DEFAULTS)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSectionContent(SECTION, CONTENT_DEFAULTS).then((data) => {
+      if (!cancelled) setContent(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -298,16 +319,14 @@ export default function OurProducts() {
           <div className="flex items-center gap-3">
             <span className="h-px w-10 bg-accent" aria-hidden="true" />
             <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-primary">
-              Our Products
+              {content['products.eyebrow']}
             </span>
           </div>
           <h2 className="font-display text-5xl font-bold leading-[1.1] text-ink sm:whitespace-nowrap sm:text-6xl">
-            What comes off the farm.
+            {content['products.heading']}
           </h2>
           <p className="max-w-xl text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
-            Day-old chicks, table eggs, market-ready birds, palm seedlings,
-            fruit bunches, and pond-raised waterfowl — available for bulk
-            and retail purchase. Tap a product to see more and enquire.
+            {content['products.paragraph']}
           </p>
         </div>
 

@@ -1,19 +1,44 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { fetchSectionContent } from '../lib/siteContent'
 
 function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-const FOUNDING_YEAR = 1989
-const yearsFarming = new Date().getFullYear() - FOUNDING_YEAR
+const SECTION = 'about'
 
-const STATS = [
-  { value: `${yearsFarming}`, label: 'Years farming' },
-  { value: '2M+', label: 'Birds raised yearly' },
-  { value: '4', label: 'Farm divisions' },
-]
+// Images live in Supabase Storage (public "farm-images" bucket).
+const SUPABASE_STORAGE_URL =
+  'https://bhcyamtmorvzfckmlhfq.supabase.co/storage/v1/object/public/farm-images/'
+
+// Fallback content — current hardcoded copy/assets, used until Supabase
+// responds and for any key the admin hasn't set yet.
+const ABOUT_DEFAULTS = {
+  'about.eyebrow': 'About Talawan',
+  'about.heading': "Decades in the making.\nBuilt for what's next.",
+  'about.paragraph':
+    "Talawan has worked this land for decades, passing through different hands along the way. What's stayed constant is the mix — livestock and oil palm, side by side, never just one or the other. What's changing now is how we run it: bringing in the tools and systems to take that same foundation further, faster, and further afield.",
+  'about.founding_year': '1989',
+  'about.stat1_label': 'Years farming',
+  'about.stat2_value': '2M+',
+  'about.stat2_label': 'Birds raised yearly',
+  'about.stat3_value': '4',
+  'about.stat3_label': 'Farm divisions',
+  'about.collage_1_url': `${SUPABASE_STORAGE_URL}farm-oilpalm-tree.jpg`,
+  'about.collage_1_alt': 'Oil palm growing on the Talawan plantation',
+  'about.collage_2_url': `${SUPABASE_STORAGE_URL}farm-poultry-layers.jpg`,
+  'about.collage_2_alt': 'Layer hens inside a Talawan poultry house',
+  'about.collage_3_url': `${SUPABASE_STORAGE_URL}farm-ducks.jpg`,
+  'about.collage_3_alt': 'Ducks and geese at the Talawan pond',
+  'about.collage_4_url': `${SUPABASE_STORAGE_URL}farm-oilpalm-fruit.jpg`,
+  'about.collage_4_alt': 'Freshly harvested oil palm fruit bunches at Talawan',
+  'about.seal_top_text': 'TALAWAN GLOBAL FARMS',
+  'about.seal_bottom_text': 'FEEDING THE NATION',
+  'about.seal_since_label': 'SINCE',
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -30,33 +55,37 @@ const fadeInFromRight = {
   show: { opacity: 1, x: 0 },
 }
 
-// Images now live in Supabase Storage (public "farm-images" bucket) instead
-// of the codebase — same filenames OurFarms.jsx can draw from too.
-const SUPABASE_STORAGE_URL =
-  'https://bhcyamtmorvzfckmlhfq.supabase.co/storage/v1/object/public/farm-images/'
-
-// Four equally-weighted shots — half crop, half livestock, so the collage
-// reads as one mixed farm rather than "mostly poultry" or "mostly palm".
-const COLLAGE = [
-  {
-    src: `${SUPABASE_STORAGE_URL}farm-oilpalm-tree.jpg`,
-    alt: 'Oil palm growing on the Talawan plantation',
-  },
-  {
-    src: `${SUPABASE_STORAGE_URL}farm-poultry-layers.jpg`,
-    alt: 'Layer hens inside a Talawan poultry house',
-  },
-  {
-    src: `${SUPABASE_STORAGE_URL}farm-ducks.jpg`,
-    alt: 'Ducks and geese at the Talawan pond',
-  },
-  {
-    src: `${SUPABASE_STORAGE_URL}farm-oilpalm-fruit.jpg`,
-    alt: 'Freshly harvested oil palm fruit bunches at Talawan',
-  },
-]
-
 export default function AboutUs() {
+  const [content, setContent] = useState(ABOUT_DEFAULTS)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchSectionContent(SECTION, ABOUT_DEFAULTS).then((data) => {
+      if (!cancelled) setContent(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const foundingYear = parseInt(content['about.founding_year'], 10) || 1989
+  const yearsFarming = new Date().getFullYear() - foundingYear
+
+  const stats = [
+    { value: `${yearsFarming}`, label: content['about.stat1_label'] },
+    { value: content['about.stat2_value'], label: content['about.stat2_label'] },
+    { value: content['about.stat3_value'], label: content['about.stat3_label'] },
+  ]
+
+  const collage = [
+    content['about.collage_1_url'],
+    content['about.collage_2_url'],
+    content['about.collage_3_url'],
+    content['about.collage_4_url'],
+  ].map((src, i) => ({ src, alt: content[`about.collage_${i + 1}_alt`] }))
+
+  const headingLines = content['about.heading'].split('\n')
+
   return (
     <section
       id="about"
@@ -77,28 +106,26 @@ export default function AboutUs() {
             <div className="mb-6 flex items-center gap-3">
               <span className="h-px w-10 bg-accent" aria-hidden="true" />
               <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-primary">
-                About Talawan
+                {content['about.eyebrow']}
               </span>
             </div>
 
             <h2 className="max-w-xl font-display text-5xl font-bold leading-[1.1] text-ink sm:text-6xl">
-              Decades in the making.
-              <br />
-              Built for what's next.
+              {headingLines.map((line, i) => (
+                <span key={i}>
+                  {line}
+                  {i < headingLines.length - 1 && <br />}
+                </span>
+              ))}
             </h2>
 
             <p className="mt-6 max-w-lg text-justify text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
-              Talawan has worked this land for decades, passing through
-              different hands along the way. What's stayed constant is the
-              mix — livestock and oil palm, side by side, never just one or
-              the other. What's changing now is how we run it: bringing in
-              the tools and systems to take that same foundation further,
-              faster, and further afield.
+              {content['about.paragraph']}
             </p>
 
             {/* Stats */}
             <dl className="mx-auto mt-10 flex max-w-lg justify-center divide-x divide-line md:mx-0 md:justify-start">
-              {STATS.map((stat, i) => (
+              {stats.map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   className={cn(
@@ -130,10 +157,10 @@ export default function AboutUs() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
             variants={fadeInFromRight}
           >
-            <div className="grid grid-cols-2 gap-3">
-              {COLLAGE.map((photo, i) => (
+            <div className="grid grid-cols-2 gap-1.5">
+              {collage.map((photo, i) => (
                 <motion.div
-                  key={photo.src}
+                  key={i}
                   className="overflow-hidden rounded-[20px] shadow-lg"
                   initial="hidden"
                   whileInView="show"
@@ -157,7 +184,7 @@ export default function AboutUs() {
                 + startOffset 50%, so spacing is exactly even on both sides
                 no matter how long the text is. */}
             <div
-              className="absolute -bottom-8 -left-6 flex h-28 w-28 items-center justify-center rounded-full bg-primary text-canvas shadow-lg ring-4 ring-canvas-alt sm:h-32 sm:w-32 md:-left-10"
+              className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-canvas shadow-lg ring-4 ring-canvas-alt sm:h-32 sm:w-32"
               aria-hidden="true"
             >
               <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
@@ -169,18 +196,18 @@ export default function AboutUs() {
                 </defs>
                 <text fill="currentColor" fontSize="6.7" letterSpacing="1.1">
                   <textPath href="#about-seal-top" startOffset="50%" textAnchor="middle">
-                    TALAWAN GLOBAL FARMS
+                    {content['about.seal_top_text']}
                   </textPath>
                 </text>
                 <text fill="currentColor" fontSize="5.4" letterSpacing="0.8">
                   <textPath href="#about-seal-bottom" startOffset="50%" textAnchor="middle">
-                    FEEDING THE NATION
+                    {content['about.seal_bottom_text']}
                   </textPath>
                 </text>
               </svg>
               <span className="flex flex-col items-center font-hero text-base leading-[0.95] tracking-wide">
-                <span className="text-[11px] tracking-[0.2em] opacity-90">SINCE</span>
-                <span className="text-xl">{FOUNDING_YEAR}</span>
+                <span className="text-[11px] tracking-[0.2em] opacity-90">{content['about.seal_since_label']}</span>
+                <span className="text-xl">{foundingYear}</span>
               </span>
             </div>
           </motion.div>
