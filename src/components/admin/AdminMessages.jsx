@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Trash2, Loader2, Mail, X, Send, RefreshCw } from 'lucide-react'
+import { Trash2, Loader2, Mail, X, Send, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { sendReplyToEnquirer } from '../../lib/emailjs'
 import logoIcon from '../../assets/logo-icon-color.png'
@@ -15,6 +15,31 @@ function formatTime(iso) {
 
 function formatFullTimestamp(iso) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' })
+}
+
+function ReplyBadge({ count }) {
+  if (!count) {
+    return (
+      <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[12px] font-medium text-red-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+        Awaiting reply
+      </span>
+    )
+  }
+  if (count === 1) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[12px] font-medium text-blue-700">
+        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
+        1 reply
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[12px] font-medium text-green-700">
+      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
+      {count} replies
+    </span>
+  )
 }
 
 function ModalBrandMark() {
@@ -252,6 +277,7 @@ export default function AdminMessages() {
   const [replies, setReplies] = useState([])
   const [repliesStatus, setRepliesStatus] = useState('idle') // idle | loading | ready | error
   const [totalCount, setTotalCount] = useState(0)
+  const [replyCounts, setReplyCounts] = useState({})
 
   const hasMore = messages.length < totalCount
 
@@ -261,6 +287,28 @@ export default function AdminMessages() {
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
+  }
+
+  // Fetches how many replies exist for a given set of messages and merges
+  // the counts into state, keyed by message_id. Counts for messages not
+  // covered by `ids` are left untouched.
+  async function fetchReplyCounts(ids) {
+    if (!ids.length) return
+    const { data, error } = await supabase
+      .from('message_replies')
+      .select('message_id')
+      .in('message_id', ids)
+
+    if (error) {
+      console.error('Loading reply counts failed:', error)
+      return
+    }
+    const counts = {}
+    for (const id of ids) counts[id] = 0
+    for (const row of data ?? []) {
+      counts[row.message_id] = (counts[row.message_id] ?? 0) + 1
+    }
+    setReplyCounts((prev) => ({ ...prev, ...counts }))
   }
 
   async function load() {
@@ -275,6 +323,7 @@ export default function AdminMessages() {
     setMessages(data ?? [])
     setTotalCount(count ?? 0)
     setStatus('ready')
+    fetchReplyCounts((data ?? []).map((m) => m.id))
   }
 
   // Fetches the next batch and appends it, rather than replacing what's
@@ -292,6 +341,7 @@ export default function AdminMessages() {
     }
     setMessages((prev) => [...prev, ...(data ?? [])])
     setTotalCount(count ?? 0)
+    fetchReplyCounts((data ?? []).map((m) => m.id))
   }
 
   // Re-fetches from the top — same number of messages currently loaded, so
@@ -308,6 +358,7 @@ export default function AdminMessages() {
     }
     setMessages(data ?? [])
     setTotalCount(count ?? 0)
+    fetchReplyCounts((data ?? []).map((m) => m.id))
   }
 
   useEffect(() => {
@@ -400,13 +451,14 @@ export default function AdminMessages() {
           <div className="hidden overflow-hidden rounded-[16px] border border-line bg-canvas md:block">
             <table className="w-full table-fixed text-left">
               <colgroup>
-                <col className="w-[13%]" />
-                <col className="w-[16%]" />
                 <col className="w-[12%]" />
-                <col className="w-[27%]" />
-                <col className="w-[10%]" />
-                <col className="w-[9%]" />
+                <col className="w-[14%]" />
                 <col className="w-[13%]" />
+                <col className="w-[26%]" />
+                <col className="w-[12%]" />
+                <col className="w-[8%]" />
+                <col className="w-[7%]" />
+                <col className="w-[8%]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-line bg-ink/[0.02]">
@@ -414,6 +466,7 @@ export default function AdminMessages() {
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Email Address</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Phone</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Message</th>
+                  <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Replies</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Date</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Time</th>
                   <th className="px-4 py-3 text-right text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Action</th>
@@ -427,14 +480,14 @@ export default function AdminMessages() {
                     className="cursor-pointer border-b border-line transition-colors last:border-b-0 hover:bg-ink/[0.03]"
                   >
                     <td className="px-4 py-3">
-                      <span className="truncate font-medium text-ink">{message.name}</span>
+                      <span className="block truncate font-medium text-ink">{message.name}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="truncate text-[13px] text-ink-soft">{message.email}</span>
+                      <span className="block truncate text-[13px] text-ink-soft">{message.email}</span>
                     </td>
                     <td className="px-4 py-3">
                       {message.phone ? (
-                        <span className="truncate text-[13px] text-ink-soft">{message.phone}</span>
+                        <span className="block truncate text-[13px] text-ink-soft">{message.phone}</span>
                       ) : (
                         <span className="text-[13px] text-ink-soft/50">—</span>
                       )}
@@ -443,6 +496,9 @@ export default function AdminMessages() {
                       <p className="line-clamp-2 whitespace-pre-wrap text-[13px] leading-relaxed text-ink-soft">
                         {message.message}
                       </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <ReplyBadge count={replyCounts[message.id] ?? 0} />
                     </td>
                     <td className="px-4 py-3 text-[13px] text-ink-soft">{formatDate(message.created_at)}</td>
                     <td className="px-4 py-3 text-[13px] text-ink-soft">{formatTime(message.created_at)}</td>
@@ -513,6 +569,9 @@ export default function AdminMessages() {
                 <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-[14px] leading-relaxed text-ink-soft">
                   {message.message}
                 </p>
+                <div className="mt-3">
+                  <ReplyBadge count={replyCounts[message.id] ?? 0} />
+                </div>
               </div>
             ))}
           </div>
@@ -541,7 +600,13 @@ export default function AdminMessages() {
         onClose={() => setActiveMessage(null)}
         replies={replies}
         repliesStatus={repliesStatus}
-        onReplySent={(reply) => setReplies((prev) => [...prev, reply])}
+        onReplySent={(reply) => {
+          setReplies((prev) => [...prev, reply])
+          setReplyCounts((prev) => ({
+            ...prev,
+            [reply.message_id]: (prev[reply.message_id] ?? 0) + 1,
+          }))
+        }}
       />
     </div>
   )

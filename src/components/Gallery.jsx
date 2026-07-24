@@ -95,7 +95,7 @@ function Gallery() {
       const [filesRes, productsRes, orderRes] = await Promise.all([
         supabase.storage.from(BUCKET).list('', { limit: 200 }),
         supabase.from('products').select('name, image_filename'),
-        supabase.from('gallery_order').select('filename, sort_order'),
+        supabase.from('gallery_order').select('filename, sort_order, name, category'),
       ])
 
       if (cancelled) return
@@ -118,25 +118,33 @@ function Gallery() {
       // fall back to the end, sorted alphabetically among themselves so
       // the layout stays stable rather than jumping around.
       const orderByFilename = new Map(
-        (orderRes.data ?? []).map((o) => [o.filename, o.sort_order])
+        (orderRes.data ?? []).map((o) => [o.filename, o])
       )
 
+      // Resolved display name/category for a card — prefers what the admin
+      // set explicitly via the AdminGallery modal (order row's name/category),
+      // then falls back to the old inference (product name / humanized
+      // filename) so photos uploaded before that feature still show
+      // something sensible.
       const built = (filesRes.data ?? [])
         .filter((f) => f.name && f.id) // skip the placeholder ".emptyFolderPlaceholder" entry
         .map((f) => {
           const productName = productByFilename.get(f.name)
+          const order = orderByFilename.get(f.name)
           return {
             id: f.id,
             filename: f.name,
-            category: productName ? 'Product' : 'Farm',
-            label: productName ?? humanize(f.name),
+            category: order?.category || (productName ? 'Product' : 'Farm'),
+            label: order?.name || productName || humanize(f.name),
             img: img(f.name),
           }
         })
         .sort((a, b) => {
-          const orderA = orderByFilename.has(a.filename) ? orderByFilename.get(a.filename) : Infinity
-          const orderB = orderByFilename.has(b.filename) ? orderByFilename.get(b.filename) : Infinity
-          if (orderA !== orderB) return orderA - orderB
+          const orderA = orderByFilename.get(a.filename)?.sort_order
+          const orderB = orderByFilename.get(b.filename)?.sort_order
+          const sortA = orderA != null ? orderA : Infinity
+          const sortB = orderB != null ? orderB : Infinity
+          if (sortA !== sortB) return sortA - sortB
           return a.filename.localeCompare(b.filename)
         })
 
