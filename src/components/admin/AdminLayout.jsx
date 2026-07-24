@@ -50,7 +50,7 @@ function Navbar({ onLogout }) {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-blue-600 transition-colors hover:text-blue-700"
+          className="flex items-center gap-1.5 rounded-full bg-blue-50 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-blue-600 transition-colors hover:bg-blue-100"
         >
           View site
           <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} />

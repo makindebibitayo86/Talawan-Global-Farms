@@ -92,9 +92,10 @@ function Gallery() {
     async function loadGallery() {
       setStatus('loading')
 
-      const [filesRes, productsRes] = await Promise.all([
+      const [filesRes, productsRes, orderRes] = await Promise.all([
         supabase.storage.from(BUCKET).list('', { limit: 200 }),
         supabase.from('products').select('name, image_filename'),
+        supabase.from('gallery_order').select('filename, sort_order'),
       ])
 
       if (cancelled) return
@@ -112,16 +113,31 @@ function Gallery() {
         (productsRes.data ?? []).map((p) => [p.image_filename, p.name])
       )
 
+      // Admin-controlled display order, set from the Gallery admin page.
+      // Files that predate that table (or a fresh upload not yet ordered)
+      // fall back to the end, sorted alphabetically among themselves so
+      // the layout stays stable rather than jumping around.
+      const orderByFilename = new Map(
+        (orderRes.data ?? []).map((o) => [o.filename, o.sort_order])
+      )
+
       const built = (filesRes.data ?? [])
         .filter((f) => f.name && f.id) // skip the placeholder ".emptyFolderPlaceholder" entry
         .map((f) => {
           const productName = productByFilename.get(f.name)
           return {
             id: f.id,
+            filename: f.name,
             category: productName ? 'Product' : 'Farm',
             label: productName ?? humanize(f.name),
             img: img(f.name),
           }
+        })
+        .sort((a, b) => {
+          const orderA = orderByFilename.has(a.filename) ? orderByFilename.get(a.filename) : Infinity
+          const orderB = orderByFilename.has(b.filename) ? orderByFilename.get(b.filename) : Infinity
+          if (orderA !== orderB) return orderA - orderB
+          return a.filename.localeCompare(b.filename)
         })
 
       setItems(built)
