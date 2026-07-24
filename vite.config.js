@@ -8,13 +8,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000, // kB — safety ceiling after splitting below
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return
           // React itself rarely changes, so it caches separately from your code
-          "react-vendor": ["react", "react-dom"],
+          if (id.includes("react") || id.includes("react-dom")) return "react-vendor"
           // Supabase client is sizeable and only needed where data is fetched
-          supabase: ["@supabase/supabase-js"],
+          if (id.includes("@supabase")) return "supabase"
           // Icon library — pulled in across many components, adds up fast
-          icons: ["lucide-react"],
+          if (id.includes("lucide-react")) return "icons"
         },
       },
     },
