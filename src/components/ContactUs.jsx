@@ -45,7 +45,7 @@ function toTelHref(phone) {
   return `tel:+234${withoutLeadingZero}`
 }
 
-const EMPTY_FORM = { name: '', email: '', message: '' }
+const EMPTY_FORM = { name: '', email: '', phone: '', message: '' }
 
 // Same variant shapes as AboutUs.jsx, so scroll-in motion feels identical
 // across sections rather than reinvented per component.
@@ -67,6 +67,7 @@ const fadeInFromRight = {
 export default function ContactUs() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('idle') // idle | sending | success | error
+  const [validationError, setValidationError] = useState('')
   const [content, setContent] = useState(CONTACT_DEFAULTS)
 
   useEffect(() => {
@@ -78,6 +79,14 @@ export default function ContactUs() {
       cancelled = true
     }
   }, [])
+
+  // Auto-clear the success/error message a few seconds after it appears,
+  // so it doesn't sit there indefinitely once the form has already reset.
+  useEffect(() => {
+    if (status !== 'success' && status !== 'error') return
+    const timeout = setTimeout(() => setStatus('idle'), 8000)
+    return () => clearTimeout(timeout)
+  }, [status])
 
   const eyebrow = content['contact.eyebrow']
   const headingLines = content['contact.heading'].split('\n')
@@ -110,10 +119,19 @@ export default function ContactUs() {
   function handleChange(e) {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
+    if ((name === 'email' || name === 'phone') && value.trim()) {
+      setValidationError('')
+    }
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
+
+    if (!form.email.trim() && !form.phone.trim()) {
+      setValidationError('Please provide an email or phone number so we can get back to you.')
+      return
+    }
+    setValidationError('')
     setStatus('sending')
 
     // Send the email and save the record independently — if Supabase
@@ -203,16 +221,33 @@ export default function ContactUs() {
                   htmlFor="email"
                   className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft"
                 >
-                  Email
+                  Email <span className="normal-case text-ink-soft/60">(or phone below)</span>
                 </label>
                 <input
                   id="email"
                   name="email"
                   type="email"
-                  required
                   value={form.email}
                   onChange={handleChange}
                   placeholder="you@example.com"
+                  className="mt-2 w-full rounded-sm border border-line bg-canvas px-4 py-3 text-ink outline-none transition placeholder:text-ink-soft/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft"
+                >
+                  Phone <span className="normal-case text-ink-soft/60">(or email above)</span>
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="080X XXX XXXX"
                   className="mt-2 w-full rounded-sm border border-line bg-canvas px-4 py-3 text-ink outline-none transition placeholder:text-ink-soft/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
                 />
               </div>
@@ -253,6 +288,13 @@ export default function ContactUs() {
                   )}
                 </span>
               </button>
+
+              {validationError && (
+                <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+                  <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
+                  {validationError}
+                </p>
+              )}
 
               {status === 'success' && (
                 <p className="flex items-center gap-2 text-sm font-medium text-primary">

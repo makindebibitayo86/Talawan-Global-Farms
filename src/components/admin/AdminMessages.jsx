@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Trash2, Loader2, Mail, X, Send } from 'lucide-react'
+import { Trash2, Loader2, Mail, X, Send, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { sendReplyToEnquirer } from '../../lib/emailjs'
 import logoIcon from '../../assets/logo-icon-color.png'
 import logoWordmark from '../../assets/logo-wordmark-color.png'
 
@@ -34,8 +35,59 @@ function FieldRow({ label, children }) {
   )
 }
 
-function MessageModal({ message, onClose, onDelete, deletingId }) {
+function MessageModal({ message, onClose, replies, repliesStatus, onReplySent }) {
+  const [replyText, setReplyText] = useState('')
+  const [sendStatus, setSendStatus] = useState('idle') // idle | sending | success | error
+
+  // Reset the reply form whenever a different message is opened.
+  useEffect(() => {
+    setReplyText('')
+    setSendStatus('idle')
+  }, [message?.id])
+
+  // Prevent the page behind the modal from scrolling while it's open.
+  useEffect(() => {
+    if (!message) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [message])
+
   if (!message) return null
+
+  async function handleSend(e) {
+    e.preventDefault()
+    setSendStatus('sending')
+    try {
+      await sendReplyToEnquirer({
+        toName: message.name,
+        toEmail: message.email,
+        replyMessage: replyText,
+      })
+      setSendStatus('success')
+      setReplyText('')
+
+      // Save the reply to the thread — best-effort. The email already went
+      // out, so a failure here just means it won't show up in the thread
+      // history, not that the reply itself failed.
+      const { data, error } = await supabase
+        .from('message_replies')
+        .insert([{ message_id: message.id, reply_text: replyText }])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Saving reply to thread failed:', error)
+      } else {
+        onReplySent(data)
+      }
+    } catch (err) {
+      console.error('Reply email failed:', err)
+      setSendStatus('error')
+    }
+  }
 
   return (
     <div
@@ -43,7 +95,7 @@ function MessageModal({ message, onClose, onDelete, deletingId }) {
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-[20px] border border-line bg-canvas shadow-xl"
+        className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[20px] border border-line bg-canvas shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-4 border-b border-line px-8 py-6">
@@ -58,79 +110,162 @@ function MessageModal({ message, onClose, onDelete, deletingId }) {
           </button>
         </div>
 
-        <div className="max-h-[calc(90vh-160px)] overflow-y-auto px-8 py-7">
-          <div className="mb-6 flex items-center gap-2">
-            <span className="h-px w-6 bg-primary" />
-            <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">
-              Contact enquiry
-            </span>
+        <div className="grid max-h-[calc(90vh-160px)] grid-cols-1 divide-y divide-line overflow-y-auto md:grid-cols-2 md:divide-x md:divide-y-0">
+          {/* Left column: enquiry details + reply history */}
+          <div className="px-8 py-7">
+            <div className="mb-6 flex items-center gap-2">
+              <span className="h-px w-6 bg-primary" />
+              <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">
+                Contact enquiry
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <FieldRow label="Name">
+                <p className="text-[15px] font-medium text-ink">{message.name}</p>
+              </FieldRow>
+
+              <FieldRow label="Email address">
+                <p className="text-[15px] text-ink">{message.email}</p>
+              </FieldRow>
+
+              {message.phone && (
+                <FieldRow label="Phone number">
+                  <p className="text-[15px] text-ink">{message.phone}</p>
+                </FieldRow>
+              )}
+
+              <FieldRow label="Date submitted">
+                <p className="text-[14px] text-ink-soft">{formatFullTimestamp(message.created_at)}</p>
+              </FieldRow>
+
+              <FieldRow label="Message">
+                <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
+                  {message.message}
+                </p>
+              </FieldRow>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <FieldRow label="Name">
-              <p className="text-[15px] font-medium text-ink">{message.name}</p>
-            </FieldRow>
+          {/* Right column: reply history + reply form */}
+          <div className="flex flex-col px-8 py-7">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="h-px w-6 bg-primary" />
+              <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">
+                Replies{replies.length > 0 ? ` (${replies.length})` : ''}
+              </span>
+            </div>
 
-            <FieldRow label="Email address">
-              <a
-                href={`mailto:${message.email}`}
-                className="text-[15px] text-primary hover:underline"
+            {repliesStatus === 'loading' && (
+              <p className="text-[13px] text-ink-soft">Loading replies…</p>
+            )}
+            {repliesStatus === 'error' && (
+              <p className="text-[13px] text-red-600">Couldn't load replies.</p>
+            )}
+            {repliesStatus === 'ready' && replies.length === 0 && (
+              <p className="text-[13px] text-ink-soft">No replies sent yet.</p>
+            )}
+            {repliesStatus === 'ready' && replies.length > 0 && (
+              <div className="mb-6 space-y-3">
+                {replies.map((reply) => (
+                  <div key={reply.id} className="rounded-[12px] bg-primary/[0.06] px-4 py-3">
+                    <p className="mb-1 text-[11px] font-medium text-ink-soft">
+                      You replied · {formatFullTimestamp(reply.created_at)}
+                    </p>
+                    <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
+                      {reply.reply_text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mb-4 mt-2 flex items-center gap-2">
+              <span className="h-px w-6 bg-primary" />
+              <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">
+                Send a reply
+              </span>
+            </div>
+
+            <form onSubmit={handleSend} className="flex flex-1 flex-col">
+              <label
+                htmlFor="reply-message"
+                className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-ink-soft"
               >
-                {message.email}
-              </a>
-            </FieldRow>
+                Your reply
+              </label>
+              <textarea
+                id="reply-message"
+                required
+                rows={6}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder={`Hi ${message.name}, thanks for reaching out...`}
+                disabled={sendStatus === 'sending'}
+                className="w-full flex-1 resize-none rounded-[12px] border border-line bg-canvas px-4 py-3 text-[14px] text-ink outline-none transition placeholder:text-ink-soft/60 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-60"
+              />
 
-            <FieldRow label="Date submitted">
-              <p className="text-[14px] text-ink-soft">{formatFullTimestamp(message.created_at)}</p>
-            </FieldRow>
+              {sendStatus === 'success' && (
+                <p className="mt-3 text-sm font-medium text-primary">
+                  Reply sent to {message.email}.
+                </p>
+              )}
+              {sendStatus === 'error' && (
+                <p className="mt-3 text-sm font-medium text-red-600">
+                  Couldn't send the reply. Please try again.
+                </p>
+              )}
 
-            <FieldRow label="Message">
-              <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
-                {message.message}
-              </p>
-            </FieldRow>
+              <button
+                type="submit"
+                disabled={sendStatus === 'sending' || !replyText.trim()}
+                className="mt-4 flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sendStatus === 'sending' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                ) : (
+                  <Send className="h-4 w-4" strokeWidth={2} />
+                )}
+                {sendStatus === 'sending' ? 'Sending' : 'Send reply'}
+              </button>
+            </form>
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-line px-8 py-5">
-          <button
-            type="button"
-            onClick={() => onDelete(message)}
-            disabled={deletingId === message.id}
-            className="flex items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
-          >
-            {deletingId === message.id ? (
-              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-            ) : (
-              <Trash2 className="h-4 w-4" strokeWidth={2} />
-            )}
-            Delete
-          </button>
-          <a
-            href={`mailto:${message.email}`}
-            className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
-          >
-            <Send className="h-4 w-4" strokeWidth={2} />
-            Reply
-          </a>
+        <div className="flex items-center justify-between gap-3 border-t border-line px-8 py-14">
+          {/* placeholder — footer content TBD */}
         </div>
       </div>
     </div>
   )
 }
 
+const PAGE_SIZE = 10
+
 export default function AdminMessages() {
   const [messages, setMessages] = useState([])
   const [status, setStatus] = useState('loading')
+  const [refreshing, setRefreshing] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [activeMessage, setActiveMessage] = useState(null)
+  const [replies, setReplies] = useState([])
+  const [repliesStatus, setRepliesStatus] = useState('idle') // idle | loading | ready | error
+  const [totalCount, setTotalCount] = useState(0)
+
+  const hasMore = messages.length < totalCount
+
+  async function fetchBatch(from, to) {
+    return supabase
+      .from('contact_messages')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  }
 
   async function load() {
     setStatus('loading')
-    const { data, error } = await supabase
-      .from('contact_messages')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error, count } = await fetchBatch(0, PAGE_SIZE - 1)
 
     if (error) {
       console.error(error)
@@ -138,12 +273,74 @@ export default function AdminMessages() {
       return
     }
     setMessages(data ?? [])
+    setTotalCount(count ?? 0)
     setStatus('ready')
+  }
+
+  // Fetches the next batch and appends it, rather than replacing what's
+  // already on screen.
+  async function loadMore() {
+    setLoadingMore(true)
+    const from = messages.length
+    const { data, error, count } = await fetchBatch(from, from + PAGE_SIZE - 1)
+
+    setLoadingMore(false)
+    if (error) {
+      console.error(error)
+      alert("Couldn't load more messages.")
+      return
+    }
+    setMessages((prev) => [...prev, ...(data ?? [])])
+    setTotalCount(count ?? 0)
+  }
+
+  // Re-fetches from the top — same number of messages currently loaded, so
+  // new arrivals show up without collapsing back to just the first batch.
+  async function refresh() {
+    setRefreshing(true)
+    const { data, error, count } = await fetchBatch(0, Math.max(messages.length, PAGE_SIZE) - 1)
+
+    setRefreshing(false)
+    if (error) {
+      console.error(error)
+      alert("Couldn't refresh messages.")
+      return
+    }
+    setMessages(data ?? [])
+    setTotalCount(count ?? 0)
   }
 
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    if (!activeMessage) {
+      setReplies([])
+      setRepliesStatus('idle')
+      return
+    }
+    let cancelled = false
+    setRepliesStatus('loading')
+    supabase
+      .from('message_replies')
+      .select('*')
+      .eq('message_id', activeMessage.id)
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          console.error(error)
+          setRepliesStatus('error')
+          return
+        }
+        setReplies(data ?? [])
+        setRepliesStatus('ready')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeMessage])
 
   async function handleDelete(message) {
     if (!window.confirm(`Delete the message from "${message.name}"?`)) return
@@ -155,21 +352,36 @@ export default function AdminMessages() {
       return
     }
     if (activeMessage?.id === message.id) setActiveMessage(null)
-    load()
+    // Remove locally rather than re-fetching — keeps the rest of the
+    // already-loaded batch in place instead of resetting to the first page.
+    setMessages((prev) => prev.filter((m) => m.id !== message.id))
+    setTotalCount((prev) => Math.max(0, prev - 1))
   }
 
   return (
     <div>
-      <div className="mb-4">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="h-px w-6 bg-primary" />
-          <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Get in touch</span>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-px w-6 bg-primary" />
+            <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Get in touch</span>
+          </div>
+          <h1 className="font-display text-3xl font-bold text-ink">
+            Got a question?
+            <br />
+            We're listening.
+          </h1>
         </div>
-        <h1 className="font-display text-3xl font-bold text-ink">
-          Got a question?
-          <br />
-          We're listening.
-        </h1>
+
+        <button
+          type="button"
+          onClick={refresh}
+          disabled={refreshing || status === 'loading'}
+          className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-canvas px-4 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2} />
+          Refresh
+        </button>
       </div>
 
       {status === 'loading' && <p className="text-ink-soft">Loading messages…</p>}
@@ -188,17 +400,19 @@ export default function AdminMessages() {
           <div className="hidden overflow-hidden rounded-[16px] border border-line bg-canvas md:block">
             <table className="w-full table-fixed text-left">
               <colgroup>
-                <col className="w-[14%]" />
-                <col className="w-[18%]" />
-                <col className="w-[34%]" />
+                <col className="w-[13%]" />
+                <col className="w-[16%]" />
                 <col className="w-[12%]" />
+                <col className="w-[27%]" />
                 <col className="w-[10%]" />
-                <col className="w-[12%]" />
+                <col className="w-[9%]" />
+                <col className="w-[13%]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-line bg-ink/[0.02]">
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Name</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Email Address</th>
+                  <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Phone</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Message</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Date</th>
                   <th className="px-4 py-3 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Time</th>
@@ -216,13 +430,14 @@ export default function AdminMessages() {
                       <span className="truncate font-medium text-ink">{message.name}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <a
-                        href={`mailto:${message.email}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="truncate text-[13px] text-primary hover:underline"
-                      >
-                        {message.email}
-                      </a>
+                      <span className="truncate text-[13px] text-ink-soft">{message.email}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {message.phone ? (
+                        <span className="truncate text-[13px] text-ink-soft">{message.phone}</span>
+                      ) : (
+                        <span className="text-[13px] text-ink-soft/50">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <p className="line-clamp-2 whitespace-pre-wrap text-[13px] leading-relaxed text-ink-soft">
@@ -268,13 +483,10 @@ export default function AdminMessages() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-medium text-ink">{message.name}</p>
-                    <a
-                      href={`mailto:${message.email}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[13px] text-primary hover:underline"
-                    >
-                      {message.email}
-                    </a>
+                    <p className="text-[13px] text-ink-soft">{message.email}</p>
+                    {message.phone && (
+                      <p className="text-[13px] text-ink-soft">{message.phone}</p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-[12px] text-ink-soft/70">
@@ -304,14 +516,32 @@ export default function AdminMessages() {
               </div>
             ))}
           </div>
+
+          <div className="mt-5 flex flex-col items-center gap-3">
+            <p className="text-[13px] text-ink-soft">
+              Showing {messages.length} of {totalCount} message{totalCount === 1 ? '' : 's'}
+            </p>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 rounded-full border border-line bg-canvas px-5 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            )}
+          </div>
         </>
       )}
 
       <MessageModal
         message={activeMessage}
         onClose={() => setActiveMessage(null)}
-        onDelete={handleDelete}
-        deletingId={deletingId}
+        replies={replies}
+        repliesStatus={repliesStatus}
+        onReplySent={(reply) => setReplies((prev) => [...prev, reply])}
       />
     </div>
   )

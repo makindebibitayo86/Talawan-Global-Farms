@@ -1,10 +1,11 @@
 import { supabase } from './supabaseClient'
 
 // Saves a contact form submission to the contact_messages table.
-export async function saveContactMessage({ name, email, message }) {
+// phone is optional — stored as null if the visitor left it blank.
+export async function saveContactMessage({ name, email, phone, message }) {
   const { error } = await supabase
     .from('contact_messages')
-    .insert([{ name, email, message }])
+    .insert([{ name, email, phone: phone || null, message }])
 
   if (error) throw error
 }
