@@ -536,35 +536,33 @@ export default function AdminMessages() {
                 onClick={() => setActiveMessage(message)}
                 className="cursor-pointer rounded-[16px] border border-line bg-canvas p-5"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="font-medium text-ink">{message.name}</p>
-                    <p className="text-[13px] text-ink-soft">{message.email}</p>
-                    {message.phone && (
-                      <p className="text-[13px] text-ink-soft">{message.phone}</p>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[12px] text-ink-soft/70">
+                    {formatDate(message.created_at)} · {formatTime(message.created_at)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(message)
+                    }}
+                    disabled={deletingId === message.id}
+                    aria-label="Delete"
+                    className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                  >
+                    {deletingId === message.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                    ) : (
+                      <Trash2 className="h-4 w-4" strokeWidth={2} />
                     )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-[12px] text-ink-soft/70">
-                      {formatDate(message.created_at)} · {formatTime(message.created_at)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(message)
-                      }}
-                      disabled={deletingId === message.id}
-                      aria-label="Delete"
-                      className="rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
-                    >
-                      {deletingId === message.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-                      ) : (
-                        <Trash2 className="h-4 w-4" strokeWidth={2} />
-                      )}
-                    </button>
-                  </div>
+                  </button>
+                </div>
+                <div className="mt-2 min-w-0">
+                  <p className="font-medium text-ink">{message.name}</p>
+                  <p className="text-[13px] text-ink-soft">{message.email}</p>
+                  {message.phone && (
+                    <p className="text-[13px] text-ink-soft">{message.phone}</p>
+                  )}
                 </div>
                 <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-[14px] leading-relaxed text-ink-soft">
                   {message.message}

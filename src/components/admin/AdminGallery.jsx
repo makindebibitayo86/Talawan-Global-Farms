@@ -26,9 +26,28 @@ function slugifyFilename(file) {
 // full resequence, though we resequence on every save anyway.
 const ORDER_STEP = 10
 
-const PAGE_SIZE = 15
+const PAGE_SIZE_MOBILE = 10
+const PAGE_SIZE_DEFAULT = 15
+const MOBILE_QUERY = '(max-width: 639px)'
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_QUERY).matches : false
+  )
+
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY)
+    const handler = (e) => setIsMobile(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  return isMobile
+}
 
 export default function AdminGallery() {
+  const isMobile = useIsMobile()
+  const PAGE_SIZE = isMobile ? PAGE_SIZE_MOBILE : PAGE_SIZE_DEFAULT
   const [files, setFiles] = useState([])
   const [productMap, setProductMap] = useState(new Map())
   const [status, setStatus] = useState('loading')
@@ -101,6 +120,10 @@ export default function AdminGallery() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    setPage(1)
+  }, [isMobile])
 
   // Resolved display name/category for a card — prefers what the admin set
   // explicitly via the modal, then falls back to the old inference (product

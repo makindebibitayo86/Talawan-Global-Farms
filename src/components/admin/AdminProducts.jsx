@@ -374,7 +374,7 @@ export default function AdminProducts() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="mb-3 flex items-center gap-2">
             <span className="h-px w-6 bg-primary" />
@@ -382,7 +382,7 @@ export default function AdminProducts() {
           </div>
           <h1 className="font-display text-3xl font-bold text-ink">What comes off the farm.</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={load}

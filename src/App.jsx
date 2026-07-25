@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import AdminLogin from './components/admin/AdminLogin'
 import AdminLayout from './components/admin/AdminLayout'
@@ -19,7 +19,8 @@ function App() {
           <Route path="products" element={<AdminProducts />} />
           <Route path="messages" element={<AdminMessages />} />
           <Route path="gallery" element={<AdminGallery />} />
-          <Route path="settings" element={<AdminSettings />} />
+          <Route path="settings" element={<Navigate to="/admin/settings/hero" replace />} />
+          <Route path="settings/:tab" element={<AdminSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>

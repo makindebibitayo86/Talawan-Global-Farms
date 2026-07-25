@@ -3,8 +3,9 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import {
-  ShoppingBasket, Mail, Images, Settings, LogOut, Loader2, ExternalLink,
+  ShoppingBasket, Mail, Images, Settings, LogOut, Loader2,
   ChevronsLeft, ChevronsRight,
+  LayoutTemplate, Info, Tractor, Package, GalleryThumbnails, Phone, Lock,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import logoIcon from '../../assets/logo-icon-color.png'
@@ -18,7 +19,18 @@ const NAV_ITEMS = [
   { to: '/admin/products', label: 'Products', icon: ShoppingBasket },
   { to: '/admin/messages', label: 'Messages', icon: Mail },
   { to: '/admin/gallery', label: 'Gallery', icon: Images },
-  { to: '/admin/settings', label: 'Settings', icon: Settings },
+]
+
+// Mirrors the tab list in AdminSettings.jsx — kept in sync manually since
+// each is a small, independent list of the same site sections.
+const SETTINGS_TABS = [
+  { key: 'hero', label: 'Hero', icon: LayoutTemplate },
+  { key: 'about', label: 'About', icon: Info },
+  { key: 'farms', label: 'Farms', icon: Tractor },
+  { key: 'products', label: 'Products', icon: Package },
+  { key: 'gallery', label: 'Gallery', icon: GalleryThumbnails },
+  { key: 'contact', label: 'Contact', icon: Phone },
+  { key: 'account', label: 'Password', icon: Lock },
 ]
 
 const SIDEBAR_STORAGE_KEY = 'talawan-admin-sidebar-collapsed'
@@ -28,15 +40,21 @@ const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scr
 
 function BrandMark() {
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-3">
-        <img src={logoIcon} alt="" className="h-12 w-auto object-contain" />
-        <img src={logoWordmark} alt="Talawan Global Farms" className="h-8 w-auto object-contain" />
+    <a
+      href="/"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="View site"
+      className="flex items-center gap-2 rounded-md transition-opacity hover:opacity-80 md:gap-4"
+    >
+      <div className="flex items-center gap-2 md:gap-3">
+        <img src={logoIcon} alt="" className="h-10 w-auto object-contain md:h-16" />
+        <img src={logoWordmark} alt="Talawan Global Farms" className="h-7 w-auto object-contain md:h-10" />
       </div>
       <span className="hidden border-l border-line pl-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-soft sm:inline">
         Admin
       </span>
-    </div>
+    </a>
   )
 }
 
@@ -46,22 +64,15 @@ function Navbar({ onLogout }) {
       <BrandMark />
 
       <div className="flex items-center gap-2">
-        <a
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 rounded-full bg-blue-50 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-blue-600 transition-colors hover:bg-blue-100"
-        >
-          View site
-          <ExternalLink className="h-3.5 w-3.5" strokeWidth={2} />
-        </a>
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center gap-1.5 rounded-full bg-red-50 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-100"
+          aria-label="Log out"
+          title="Log out"
+          className="flex items-center gap-1.5 rounded-full bg-red-50 p-2 text-[12px] font-medium uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-100 md:px-4 md:py-2"
         >
           <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
-          Log out
+          <span className="hidden md:inline">Log out</span>
         </button>
       </div>
     </header>
@@ -69,11 +80,15 @@ function Navbar({ onLogout }) {
 }
 
 function Sidebar({ collapsed, onToggle }) {
+  const location = useLocation()
+  const isSettingsActive = location.pathname.startsWith('/admin/settings')
+
   return (
     <aside
       className={cn(
         'flex shrink-0 flex-col border-r border-line bg-canvas transition-[width] duration-300 ease-out',
-        collapsed ? 'w-[72px]' : 'w-56'
+        'w-[72px]', // mobile: always icon-only, no expanded view
+        collapsed ? 'md:w-[72px]' : 'md:w-56'
       )}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Admin sections">
@@ -85,18 +100,63 @@ function Sidebar({ collapsed, onToggle }) {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
-                collapsed && 'justify-center px-0',
-                isActive && 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+                'justify-center px-0', // mobile: always icon-only, no expanded view
+                collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+                isActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
               )
             }
           >
             <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-            {!collapsed && <span className="truncate">{label}</span>}
+            {!collapsed && <span className="hidden truncate md:inline">{label}</span>}
           </NavLink>
         ))}
+
+        <div>
+          <NavLink
+            to="/admin/settings/hero"
+            title="Settings"
+            className={cn(
+              'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+              'justify-center px-0', // mobile: always icon-only, no expanded view
+              collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+              isSettingsActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
+            )}
+          >
+            <Settings className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+            {!collapsed && <span className="hidden truncate md:inline">Settings</span>}
+          </NavLink>
+
+          {/* Stays open the whole time you're anywhere under Settings, with
+              the active section highlighted. Icon-only on mobile and on a
+              collapsed desktop sidebar, labeled once the sidebar is
+              expanded on md+. */}
+          {isSettingsActive && (
+            <div className="mt-1 flex flex-col gap-1">
+              <span className="my-1 h-px w-full bg-line" />
+              {SETTINGS_TABS.map(({ key, label, icon: Icon }) => (
+                <NavLink
+                  key={key}
+                  to={`/admin/settings/${key}`}
+                  title={label}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-full px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+                      'justify-center px-0', // mobile: always icon-only
+                      collapsed ? 'md:justify-center md:px-0' : 'md:justify-start',
+                      isActive && 'bg-amber-500 text-white hover:bg-amber-500 hover:text-white'
+                    )
+                  }
+                >
+                  <Icon className="h-[16px] w-[16px] shrink-0" strokeWidth={2} />
+                  {!collapsed && <span className="hidden truncate md:inline">{label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
 
-      <div className="border-t border-line p-3">
+      <div className="hidden border-t border-line p-3 md:block">
         <button
           type="button"
           onClick={onToggle}

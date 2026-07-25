@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, KeyRound, Check, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import HeroSettingsTab from './HeroSettingsTab'
@@ -17,16 +18,17 @@ const RULES = [
   { key: 'number', label: 'One number', test: (v) => /[0-9]/.test(v) },
 ]
 
-// One entry per site section. Adding a new editable section later is
-// just: build a <XSettingsTab />, add it here.
+// One entry per site section — kept here to validate the :tab URL param.
+// Adding a new editable section: build a <XSettingsTab />, add it here,
+// and add matching entries to SETTINGS_TABS in AdminLayout.jsx.
 const TABS = [
-  { key: 'hero', label: 'Hero' },
-  { key: 'about', label: 'About' },
-  { key: 'farms', label: 'Farms' },
-  { key: 'products', label: 'Products' },
-  { key: 'gallery', label: 'Gallery' },
-  { key: 'contact', label: 'Contact' },
-  { key: 'account', label: 'Password' },
+  { key: 'hero' },
+  { key: 'about' },
+  { key: 'farms' },
+  { key: 'products' },
+  { key: 'gallery' },
+  { key: 'contact' },
+  { key: 'account' },
 ]
 
 function getPasswordChecks(value) {
@@ -259,7 +261,8 @@ function AccountTab() {
 }
 
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState('hero')
+  const { tab } = useParams()
+  const activeTab = TABS.some((t) => t.key === tab) ? tab : 'hero'
 
   return (
     <div>
@@ -269,24 +272,6 @@ export default function AdminSettings() {
           <span className="text-[12px] font-medium uppercase tracking-[0.18em] text-primary">Settings</span>
         </div>
         <h1 className="font-display text-3xl font-bold text-ink">Manage your site.</h1>
-      </div>
-
-      <div className="mb-6 flex flex-wrap gap-1 border-b border-line">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative px-4 py-3 text-[13px] font-medium uppercase tracking-[0.06em] transition-colors ${
-              activeTab === tab.key ? 'text-primary' : 'text-ink-soft hover:text-ink'
-            }`}
-          >
-            {tab.label}
-            {activeTab === tab.key && (
-              <span className="absolute inset-x-0 -bottom-px h-[2px] bg-primary" />
-            )}
-          </button>
-        ))}
       </div>
 
       {activeTab === 'hero' && <HeroSettingsTab />}
