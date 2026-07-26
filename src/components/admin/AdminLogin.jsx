@@ -1,9 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, AlertCircle, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { Loader2, AlertCircle, Lock, Eye, EyeOff, CheckCircle2, Sun, Moon } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import logoIcon from '../../assets/logo-icon-color.png'
 import logoWordmark from '../../assets/logo-wordmark-color.png'
+
+// Mirrors the theme storage/detection logic in AdminLayout.jsx. Duplicated
+// rather than shared because this page renders before authentication, on
+// its own route, outside AdminLayout's tree.
+const THEME_STORAGE_KEY = 'talawan-admin-theme'
+
+function themeForTime() {
+  const hour = new Date().getHours()
+  return hour >= 18 || hour < 6 ? 'dark' : 'light'
+}
+
+function getInitialTheme() {
+  if (typeof window === 'undefined') return 'light'
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+  return stored === 'light' || stored === 'dark' ? stored : themeForTime()
+}
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -15,6 +31,21 @@ export default function AdminLogin() {
   const [resetStatus, setResetStatus] = useState('idle') // idle | submitting | sent | error
   const [errorMsg, setErrorMsg] = useState('')
   const [resetErrorMsg, setResetErrorMsg] = useState('')
+  const [theme, setTheme] = useState(getInitialTheme)
+
+  // Reflects the theme on <html> so the `dark:` variant and the CSS var
+  // overrides under .dark pick it up, same as AdminLayout does post-login.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
+
+  function toggleTheme() {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark'
+      window.localStorage.setItem(THEME_STORAGE_KEY, next)
+      return next
+    })
+  }
 
   // If already logged in, skip straight past the login form.
   useEffect(() => {
@@ -81,34 +112,50 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-y-auto bg-canvas-alt px-4">
-      <style>{`
-        .admin-input:-webkit-autofill,
-        .admin-input:-webkit-autofill:hover,
-        .admin-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0px 1000px #f6f4ec inset;
-          -webkit-text-fill-color: #23291f;
-          transition: background-color 9999s ease-in-out 0s;
-        }
-      `}</style>
-      <div
-        className="w-full rounded-[20px] bg-canvas p-9"
-        style={{
-          maxWidth: '380px',
-          border: '1px solid rgba(35, 41, 31, 0.14)',
-          boxShadow: '0 24px 48px -16px rgba(35, 41, 31, 0.28)',
-        }}
-      >
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3">
-            <img src={logoIcon} alt="" className="h-14 w-auto object-contain" />
-            <img src={logoWordmark} alt="Talawan Global Farms" className="h-8 w-auto object-contain" />
+    <div className="fixed inset-0 overflow-y-auto">
+      <div className="admin-shell flex min-h-full items-center justify-center px-4">
+        <style>{`
+          .admin-input:-webkit-autofill,
+          .admin-input:-webkit-autofill:hover,
+          .admin-input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0px 1000px #f6f4ec inset;
+            -webkit-text-fill-color: #23291f;
+            transition: background-color 9999s ease-in-out 0s;
+          }
+          .dark .admin-input:-webkit-autofill,
+          .dark .admin-input:-webkit-autofill:hover,
+          .dark .admin-input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0px 1000px #333c2f inset;
+            -webkit-text-fill-color: #ece9dc;
+          }
+        `}</style>
+        <div
+          className="w-full rounded-[20px] border border-line glass-panel p-9 shadow-[0_24px_48px_-16px_rgba(35,41,31,0.28)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.6)]"
+          style={{ maxWidth: '380px' }}
+        >
+          <div className="mb-8 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="flex items-center justify-center rounded-full border border-line p-2 text-ink-soft transition-colors hover:border-primary hover:text-primary"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-3.5 w-3.5" strokeWidth={2} />
+              ) : (
+                <Moon className="h-3.5 w-3.5" strokeWidth={2} />
+              )}
+            </button>
+            <div className="flex items-center gap-3">
+              <img src={logoIcon} alt="" className="h-14 w-auto object-contain" />
+              <img src={logoWordmark} alt="Talawan Global Farms" className="h-8 w-auto object-contain" />
+            </div>
+            <span className="flex items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink-soft">
+              <Lock className="h-3 w-3" strokeWidth={2} />
+              {mode === 'login' ? 'Admin sign in' : 'Reset password'}
+            </span>
           </div>
-          <span className="flex items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink-soft">
-            <Lock className="h-3 w-3" strokeWidth={2} />
-            {mode === 'login' ? 'Admin sign in' : 'Reset password'}
-          </span>
-        </div>
 
         {mode === 'login' && (
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -155,7 +202,7 @@ export default function AdminLogin() {
           </div>
 
           {status === 'error' && (
-            <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+            <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
               {errorMsg}
             </p>
@@ -203,7 +250,7 @@ export default function AdminLogin() {
             </div>
 
             {resetStatus === 'error' && (
-              <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+              <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
                 <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                 {resetErrorMsg}
               </p>
@@ -244,6 +291,7 @@ export default function AdminLogin() {
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

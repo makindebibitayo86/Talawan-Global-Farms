@@ -65,7 +65,7 @@ function StringListEditor({ label, items, onChange, placeholder }) {
               type="button"
               onClick={() => removeAt(idx)}
               aria-label={`Remove ${label.toLowerCase()} item`}
-              className="shrink-0 rounded-full p-1.5 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+              className="shrink-0 rounded-full p-1.5 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
             >
               <X className="h-4 w-4" strokeWidth={2} />
             </button>
@@ -143,7 +143,7 @@ export default function ContactSettingsTab() {
 
   if (loading) {
     return (
-      <div className="rounded-[16px] border border-line bg-canvas p-6">
+      <div className="rounded-[16px] border border-line glass-panel p-6">
         <div className="flex items-center gap-2 text-ink-soft">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading contact content…
@@ -153,7 +153,7 @@ export default function ContactSettingsTab() {
   }
 
   return (
-    <div className="rounded-[16px] border border-line bg-canvas p-6">
+    <div className="rounded-[16px] border border-line glass-panel p-6">
       <h2 className="mb-5 font-medium text-ink">Contact section</h2>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -254,7 +254,7 @@ export default function ContactSettingsTab() {
 
       <div className="mt-6 border-t border-line pt-6">
         {status === 'error' && (
-          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-red-600">
+          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
             <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
             {errorMsg}
           </p>

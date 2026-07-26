@@ -114,7 +114,7 @@ function PasswordStrength({ value }) {
             {check.passed ? (
               <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
             ) : (
-              <X className="h-3.5 w-3.5 shrink-0 opacity-40" strokeWidth={2} />
+              <X className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={2} />
             )}
             {check.label}
           </li>
@@ -194,7 +194,7 @@ function AccountTab() {
   }
 
   return (
-    <div className="max-w-md rounded-[16px] border border-line bg-canvas p-6">
+    <div className="max-w-md rounded-[16px] border border-line glass-panel p-6">
       <div className="mb-5 flex items-center gap-2 text-ink">
         <KeyRound className="h-4 w-4 text-primary" strokeWidth={2} />
         <h2 className="font-medium">Change password</h2>

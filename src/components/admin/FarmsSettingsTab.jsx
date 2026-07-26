@@ -124,7 +124,7 @@ function StringListEditor({ label, items, onChange, placeholder }) {
               type="button"
               onClick={() => removeAt(idx)}
               aria-label={`Remove ${label.toLowerCase()} item`}
-              className="shrink-0 rounded-full p-1.5 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+              className="shrink-0 rounded-full p-1.5 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
             >
               <X className="h-4 w-4" strokeWidth={2} />
             </button>
@@ -215,7 +215,7 @@ function ImagesEditor({ slug, images, onChange }) {
         </label>
       </div>
       {error && (
-        <p className="mt-2 flex items-center gap-1.5 text-[12px] font-medium text-red-600">
+        <p className="mt-2 flex items-center gap-1.5 text-[12px] font-medium text-red-600 dark:text-red-400">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
           {error}
         </p>
@@ -263,7 +263,7 @@ function FarmCard({ farm, isOpen, onToggle, onChange, onDelete, onMove, isFirst,
   const Icon = ICON_MAP[farm.icon_key] || Egg
 
   return (
-    <div className="rounded-[16px] border border-line bg-canvas">
+    <div className="rounded-[16px] border border-line glass-panel">
       <div className="flex items-center gap-3 px-5 py-4">
         <button
           type="button"
@@ -393,7 +393,7 @@ function FarmCard({ farm, isOpen, onToggle, onChange, onDelete, onMove, isFirst,
           </div>
 
           {status === 'error' && (
-            <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+            <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
               {errorMsg}
             </p>
@@ -412,7 +412,7 @@ function FarmCard({ farm, isOpen, onToggle, onChange, onDelete, onMove, isFirst,
                 <button
                   type="button"
                   onClick={onDelete}
-                  className="rounded-full bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-700"
+                  className="rounded-full bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-400"
                 >
                   Yes, delete
                 </button>
@@ -428,7 +428,7 @@ function FarmCard({ farm, isOpen, onToggle, onChange, onDelete, onMove, isFirst,
               <button
                 type="button"
                 onClick={() => setConfirmingDelete(true)}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:text-red-600"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:text-red-600 dark:hover:text-red-400"
               >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Delete farm
@@ -480,7 +480,7 @@ function HeaderEditor({ header, onChange }) {
   }
 
   return (
-    <div className="space-y-4 rounded-[16px] border border-line bg-canvas p-5">
+    <div className="space-y-4 rounded-[16px] border border-line glass-panel p-5">
       <div>
         <label className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">
           Eyebrow label
@@ -519,7 +519,7 @@ function HeaderEditor({ header, onChange }) {
       </div>
 
       {status === 'error' && (
-        <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+        <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
           {errorMsg}
         </p>
@@ -643,7 +643,7 @@ export default function FarmsSettingsTab() {
 
   if (loading) {
     return (
-      <div className="rounded-[16px] border border-line bg-canvas p-6">
+      <div className="rounded-[16px] border border-line glass-panel p-6">
         <div className="flex items-center gap-2 text-ink-soft">
           <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
           Loading farms…
@@ -654,8 +654,8 @@ export default function FarmsSettingsTab() {
 
   if (loadError) {
     return (
-      <div className="rounded-[16px] border border-line bg-canvas p-6">
-        <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+      <div className="rounded-[16px] border border-line glass-panel p-6">
+        <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
           Couldn't load farms: {loadError}
         </p>
@@ -664,12 +664,12 @@ export default function FarmsSettingsTab() {
   }
 
   return (
-    <div className="rounded-[16px] border border-line bg-canvas p-6">
+    <div className="rounded-[16px] border border-line glass-panel p-6">
       <h2 className="mb-5 font-medium text-ink">Farms section</h2>
 
       <div className="w-full space-y-4">
         {orderStatus === 'error' && (
-          <span className="flex items-center gap-1.5 text-[12px] font-medium text-red-600">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium text-red-600 dark:text-red-400">
             <AlertCircle className="h-3.5 w-3.5" strokeWidth={1.75} />
             Order didn't save
           </span>

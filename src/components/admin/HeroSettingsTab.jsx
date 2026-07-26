@@ -151,7 +151,7 @@ export default function HeroSettingsTab() {
   }
 
   return (
-    <div className="rounded-[16px] border border-line bg-canvas p-6">
+    <div className="rounded-[16px] border border-line glass-panel p-6">
       <h2 className="mb-5 font-medium text-ink">Hero section</h2>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -185,7 +185,7 @@ export default function HeroSettingsTab() {
 
       <div className="mt-6 border-t border-line pt-6">
         {status === 'error' && (
-          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-red-600">
+          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
             <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
             {errorMsg}
           </p>

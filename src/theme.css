@@ -5,10 +5,28 @@
   --color-ink: #23291f;
   --color-ink-soft: #4b5245;
 
-  /* Primary — muted olive-forest, not bright "grass" green */
-  --color-primary: #4a5d3a;
-  --color-primary-dark: #384629;
-  --color-primary-tint: #4a5d3a1a;
+  /* Primary — muted olive-green, the site's actual brand color. Replaces
+     the brighter emerald (#22c55e) that was in here before and bleeding
+     through the glass panels/blobs — this darker shade is what the main
+     site uses, so everything below is built off it instead. */
+  --color-primary: #4a5d3b;
+  --color-primary-dark: #3a4a2f;
+  --color-primary-tint: #4a5d3b1a;
+
+  /* Gradient stops used by .admin-shell and any decorative green gradients —
+     same muted olive family, darkest to palest sage, no bright/neon jump
+     between stops. */
+  --gradient-green-1: #3a4a2f;
+  --gradient-green-2: #4a5d3b;
+  --gradient-green-3: #6b7f56;
+  --gradient-green-4: #94a67c;
+
+  /* Atmosphere-only stops — used exclusively by the three background
+     blobs behind .admin-shell. Same olive family as --color-primary so
+     the blobs never introduce a second, brighter green into the page. */
+  --atmo-emerald: #3a4a2f;
+  --atmo-jade: #5c7048;
+  --atmo-mint: #8a9b6e;
 
   /* Accent — harvest gold, used sparingly */
   --color-accent: #b08d57;
@@ -33,4 +51,140 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Dark mode — accent stays the same hue family (harvest-gold) as light
+   mode; primary uses the same muted-olive family as light mode too, just
+   lightened for contrast on a near-black canvas. Toggled by adding
+   .dark to <html> (see AdminLayout.jsx); every bg-canvas/text-ink/etc.
+   utility picks this up automatically since they all reference these same
+   custom properties. */
+.dark {
+  --color-canvas: #1a1d16;
+  --color-canvas-alt: #333c2f;
+  --color-ink: #ece9dc;
+  --color-ink-soft: #a8ab9c;
+
+  /* Same olive family, lightened just enough for contrast on a near-black
+     canvas — not a separate vivid-emerald palette anymore. */
+  --color-primary: #7c9463;
+  --color-primary-dark: #5c7048;
+  --color-primary-tint: #7c94631a;
+
+  --gradient-green-1: #3a4a2f;
+  --gradient-green-2: #5c7048;
+  --gradient-green-3: #7c9463;
+  --gradient-green-4: #a3b489;
+
+  /* Same olive family as light mode's atmosphere stops, lightened to
+     match the dark-mode primary above. */
+  --atmo-emerald: #3a4a2f;
+  --atmo-jade: #5c7048;
+  --atmo-mint: #7c9463;
+
+  --color-accent: #d1ab74;
+  --color-accent-dark: #e0c090;
+
+  --color-line: #4a5548;
+  --color-line-soft: #4a554866;
+}
+
+/* Admin shell background — minimal by design: a flat canvas base with
+   three small, restrained radial blobs (top corner, center, opposite
+   bottom corner) rather than any full-bleed texture. No stripes, no
+   waves, no vignette — just enough color to keep the shell from being
+   completely flat, at low enough opacity that it never competes with or
+   discolors the actual card/text colors sitting on top of it. Lives on a
+   ::before pinned to the viewport (position: fixed — .admin-shell has no
+   transform, so this escapes into true viewport space). */
+.admin-shell {
+  position: relative;
+  isolation: isolate;
+  background: var(--color-canvas-alt);
+}
+
+.admin-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px circle at 12% 10%, color-mix(in srgb, var(--atmo-jade) 9%, transparent), transparent 70%),
+    radial-gradient(1200px circle at 50% 48%, color-mix(in srgb, var(--atmo-mint) 6%, transparent), transparent 72%),
+    radial-gradient(1100px circle at 88% 90%, color-mix(in srgb, var(--atmo-emerald) 8%, transparent), transparent 70%);
+}
+
+.dark .admin-shell::before {
+  background:
+    radial-gradient(1100px circle at 12% 10%, color-mix(in srgb, var(--atmo-jade) 14%, transparent), transparent 70%),
+    radial-gradient(1200px circle at 50% 48%, color-mix(in srgb, var(--atmo-mint) 8%, transparent), transparent 72%),
+    radial-gradient(1100px circle at 88% 90%, color-mix(in srgb, var(--atmo-emerald) 16%, transparent), transparent 70%);
+}
+
+/* Liquid-glass surfaces — used for the header, sidebar, and footer, which
+   already draw their own hairline border (border-b/border-r/border-t) so
+   they don't need one here. Kept near-opaque so the shell's blobs read
+   as a faint tint at most, never enough to shift the panel's own color. */
+.glass-surface {
+  background: color-mix(in srgb, var(--color-canvas) 92%, transparent);
+  backdrop-filter: blur(22px) saturate(115%);
+  -webkit-backdrop-filter: blur(22px) saturate(115%);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, white 14%, transparent);
+}
+
+.dark .glass-surface {
+  background: color-mix(in srgb, var(--color-canvas) 88%, transparent);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, white 5%, transparent);
+}
+
+/* Liquid-glass panels — used for lighter card-like content (tables, card
+   lists, empty states). Flat color-mix rather than a corner-to-corner
+   gradient — simpler, and it keeps every panel a single consistent tone
+   instead of drifting green toward one corner. */
+.glass-panel {
+  background: color-mix(in srgb, var(--color-canvas) 94%, transparent);
+  backdrop-filter: blur(20px) saturate(115%);
+  -webkit-backdrop-filter: blur(20px) saturate(115%);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, white 16%, transparent),
+    0 8px 24px -12px rgba(20, 30, 22, 0.14);
+}
+
+.dark .glass-panel {
+  background: color-mix(in srgb, var(--color-canvas) 90%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, white 5%, transparent),
+    0 8px 26px -10px rgba(0, 0, 0, 0.35);
+}
+
+/* Liquid-glass modal — near-fully opaque since it holds form fields and
+   body text that need to stay legible regardless of what's behind the
+   overlay. Still gets a touch of blur/highlight for the glass feel. */
+.glass-modal {
+  background: color-mix(in srgb, var(--color-canvas) 97%, transparent);
+  backdrop-filter: blur(24px) saturate(110%);
+  -webkit-backdrop-filter: blur(24px) saturate(110%);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, white 16%, transparent),
+    0 20px 48px -16px rgba(20, 30, 22, 0.28);
+}
+
+.dark .glass-modal {
+  background: color-mix(in srgb, var(--color-canvas) 96%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, white 4%, transparent),
+    0 20px 54px -14px rgba(0, 0, 0, 0.5);
+}
+
+/* Every text/password input across the admin panel uses bg-canvas-alt/60 —
+   a translucent field background. In light mode that's fine sitting on a
+   light card, but in dark mode it can stack on top of glass-panel's own
+   translucency and the shell's darkest gradient corners, crushing down to
+   near-black and losing all the green tint the rest of the UI has. Bump
+   it to near-opaque in dark mode only, so fields stay a consistent,
+   legible tone regardless of what's rendered behind them. */
+.dark .bg-canvas-alt\/60 {
+  background-color: color-mix(in srgb, var(--color-canvas-alt) 92%, transparent);
 }

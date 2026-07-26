@@ -124,12 +124,12 @@ export default function AboutUs() {
             </p>
 
             {/* Stats */}
-            <dl className="mx-auto mt-10 flex max-w-lg justify-center divide-x divide-line md:mx-0 md:justify-start">
+            <dl className="mt-10 flex max-w-lg justify-center divide-x divide-line">
               {stats.map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   className={cn(
-                    'flex flex-1 flex-col items-center px-5 text-center first:pl-5 md:items-start md:px-5 md:text-left md:first:pl-0'
+                    'flex flex-1 flex-col items-center px-5 text-center first:pl-5'
                   )}
                   initial="hidden"
                   whileInView="show"

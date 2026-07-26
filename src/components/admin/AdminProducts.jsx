@@ -121,14 +121,14 @@ function ProductForm({ initial, onClose, onSaved }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-3 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm md:p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-canvas shadow-2xl"
+        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] glass-modal shadow-2xl"
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 16, scale: 0.98 }}
@@ -257,7 +257,7 @@ function ProductForm({ initial, onClose, onSaved }) {
                       onChange={(e) => updateDetail(i, e.target.value)}
                       className="w-full rounded-sm border border-line bg-canvas px-3 py-2 text-[14px] text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
                     />
-                    <button type="button" onClick={() => removeDetail(i)} aria-label="Remove" className="text-ink-soft hover:text-red-600">
+                    <button type="button" onClick={() => removeDetail(i)} aria-label="Remove" className="text-ink-soft hover:text-red-600 dark:hover:text-red-400">
                       <X className="h-4 w-4" strokeWidth={2} />
                     </button>
                   </div>
@@ -288,7 +288,7 @@ function ProductForm({ initial, onClose, onSaved }) {
                       onChange={(e) => updateSpec(i, 'value', e.target.value)}
                       className="w-1/2 rounded-sm border border-line bg-canvas px-3 py-2 text-[14px] text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
                     />
-                    <button type="button" onClick={() => removeSpec(i)} aria-label="Remove" className="text-ink-soft hover:text-red-600">
+                    <button type="button" onClick={() => removeSpec(i)} aria-label="Remove" className="text-ink-soft hover:text-red-600 dark:hover:text-red-400">
                       <X className="h-4 w-4" strokeWidth={2} />
                     </button>
                   </div>
@@ -298,7 +298,7 @@ function ProductForm({ initial, onClose, onSaved }) {
           </div>
 
           {error && (
-            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-red-600">
+            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
               {error}
             </p>
@@ -405,12 +405,12 @@ export default function AdminProducts() {
       </div>
 
       {status === 'loading' && <p className="text-ink-soft">Loading products…</p>}
-      {status === 'error' && <p className="text-red-600">Couldn't load products.</p>}
+      {status === 'error' && <p className="text-red-600 dark:text-red-400">Couldn't load products.</p>}
 
       {status === 'ready' && (
         <>
           {products.length === 0 && (
-            <p className="rounded-[16px] border border-line bg-canvas p-6 text-center text-ink-soft">
+            <p className="rounded-[16px] border border-line glass-panel p-6 text-center text-ink-soft">
               No products yet — add your first one.
             </p>
           )}
@@ -418,7 +418,7 @@ export default function AdminProducts() {
           {products.length > 0 && (
             <>
               {/* Desktop / tablet table */}
-              <div className="hidden overflow-hidden rounded-[16px] border border-line bg-canvas md:block">
+              <div className="hidden overflow-hidden rounded-[16px] border border-line glass-panel md:block">
                 <table className="w-full table-fixed text-left">
                   <colgroup>
                     <col className="w-[32%]" />
@@ -483,7 +483,7 @@ export default function AdminProducts() {
                               }}
                               disabled={deletingId === product.id}
                               aria-label="Delete"
-                              className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                              className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                             >
                               {deletingId === product.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
@@ -501,7 +501,7 @@ export default function AdminProducts() {
               </div>
 
               {/* Mobile card list */}
-              <div className="overflow-hidden rounded-[16px] border border-line bg-canvas md:hidden">
+              <div className="overflow-hidden rounded-[16px] border border-line glass-panel md:hidden">
                 {paginatedProducts.map((product) => (
                   <div
                     key={product.id}
@@ -529,7 +529,7 @@ export default function AdminProducts() {
                       onClick={() => handleDelete(product)}
                       disabled={deletingId === product.id}
                       aria-label="Delete"
-                      className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                      className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                     >
                       {deletingId === product.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />

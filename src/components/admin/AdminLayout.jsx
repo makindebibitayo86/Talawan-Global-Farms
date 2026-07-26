@@ -6,6 +6,7 @@ import {
   ShoppingBasket, Mail, Images, Settings, LogOut, Loader2,
   ChevronsLeft, ChevronsRight,
   LayoutTemplate, Info, Tractor, Package, GalleryThumbnails, Phone, Lock,
+  Sun, Moon,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import logoIcon from '../../assets/logo-icon-color.png'
@@ -34,9 +35,25 @@ const SETTINGS_TABS = [
 ]
 
 const SIDEBAR_STORAGE_KEY = 'talawan-admin-sidebar-collapsed'
+const THEME_STORAGE_KEY = 'talawan-admin-theme'
 const SITE_TITLE = 'Talawan Global Farms'
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // auto logout after 5 minutes of inactivity
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel']
+
+// Dark from 6pm to 6am, light the rest of the day — only consulted when the
+// admin hasn't explicitly picked a theme via the toggle button.
+function themeForTime() {
+  const hour = new Date().getHours()
+  return hour >= 18 || hour < 6 ? 'dark' : 'light'
+}
+
+// Runs once, on load: an explicit prior choice (saved by the toggle button)
+// always wins; otherwise fall back to time-of-day.
+function getInitialTheme() {
+  if (typeof window === 'undefined') return 'light'
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+  return stored === 'light' || stored === 'dark' ? stored : themeForTime()
+}
 
 function BrandMark() {
   return (
@@ -51,19 +68,32 @@ function BrandMark() {
         <img src={logoIcon} alt="" className="h-10 w-auto object-contain md:h-16" />
         <img src={logoWordmark} alt="Talawan Global Farms" className="h-7 w-auto object-contain md:h-10" />
       </div>
-      <span className="hidden border-l border-line pl-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-soft sm:inline">
+      <span className="border-l border-line pl-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-soft sm:pl-4 sm:text-[12px] sm:tracking-[0.14em]">
         Admin
       </span>
     </a>
   )
 }
 
-function Navbar({ onLogout }) {
+function Navbar({ onLogout, theme, onToggleTheme }) {
   return (
-    <header className="flex h-20 shrink-0 items-center justify-between border-b border-line bg-canvas px-4 md:px-6">
+    <header className="glass-surface flex h-20 shrink-0 items-center justify-between border-b border-line px-4 md:px-6">
       <BrandMark />
 
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="flex items-center justify-center rounded-full border border-line p-2 text-ink-soft transition-colors hover:border-primary hover:text-primary"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-3.5 w-3.5" strokeWidth={2} />
+          ) : (
+            <Moon className="h-3.5 w-3.5" strokeWidth={2} />
+          )}
+        </button>
         <button
           type="button"
           onClick={onLogout}
@@ -86,9 +116,9 @@ function Sidebar({ collapsed, onToggle }) {
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col border-r border-line bg-canvas transition-[width] duration-300 ease-out',
+        'glass-surface flex shrink-0 flex-col border-r border-line transition-[width] duration-300 ease-out',
         'w-[72px]', // mobile: always icon-only, no expanded view
-        collapsed ? 'md:w-[72px]' : 'md:w-56'
+        collapsed ? 'md:w-[72px]' : 'md:w-36'
       )}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Admin sections">
@@ -142,7 +172,7 @@ function Sidebar({ collapsed, onToggle }) {
                     cn(
                       'flex items-center gap-3 rounded-full px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
                       'justify-center px-0', // mobile: always icon-only
-                      collapsed ? 'md:justify-center md:px-0' : 'md:justify-start',
+                      collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
                       isActive && 'bg-amber-500 text-white hover:bg-amber-500 hover:text-white'
                     )
                   }
@@ -184,7 +214,7 @@ function Sidebar({ collapsed, onToggle }) {
 function AdminFooter() {
   const year = new Date().getFullYear()
   return (
-    <footer className="shrink-0 border-t border-line bg-canvas px-4 py-4 md:px-6">
+    <footer className="glass-surface shrink-0 border-t border-line px-4 py-4 md:px-6">
       <p className="text-center text-[12px] text-ink-soft/70">
         © {year} Talawan Global Farms — Admin Panel
       </p>
@@ -200,6 +230,14 @@ export default function AdminLayout() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
   })
+  const [theme, setTheme] = useState(getInitialTheme)
+
+  // Reflects the theme on the <html> element, which is what the `dark:`
+  // Tailwind variant (and any CSS var overrides under a .dark selector)
+  // key off of.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   // Reflect the current admin section in the browser tab, instead of
   // leaving it on the public site's title.
@@ -265,6 +303,14 @@ export default function AdminLayout() {
     })
   }
 
+  function toggleTheme() {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark'
+      window.localStorage.setItem(THEME_STORAGE_KEY, next)
+      return next
+    })
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/admin/login', { replace: true })
@@ -272,15 +318,15 @@ export default function AdminLayout() {
 
   if (authState === 'checking') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas-alt">
+      <div className="admin-shell flex min-h-screen items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-ink-soft" strokeWidth={2} />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas-alt">
-      <Navbar onLogout={handleLogout} />
+    <div className="admin-shell flex min-h-screen flex-col">
+      <Navbar onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
 
       <div className="flex flex-1">
         <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />

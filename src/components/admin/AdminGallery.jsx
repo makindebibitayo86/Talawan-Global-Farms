@@ -346,7 +346,7 @@ export default function AdminGallery() {
                 type="button"
                 onClick={cancelReordering}
                 disabled={savingOrder}
-                className="flex items-center gap-2 rounded-full border border-line px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-60"
+                className="flex items-center gap-2 rounded-full border border-line px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-red-300 hover:text-red-600 dark:hover:border-red-900 dark:hover:text-red-400 disabled:opacity-60"
               >
                 <X className="h-4 w-4" strokeWidth={2} />
                 Cancel
@@ -409,14 +409,14 @@ export default function AdminGallery() {
       </p>
 
       {orderError && (
-        <p className="mb-4 flex items-center gap-2 text-sm font-medium text-red-600">
+        <p className="mb-4 flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
           {orderError}
         </p>
       )}
 
       {status === 'loading' && <p className="text-ink-soft">Loading gallery…</p>}
-      {status === 'error' && <p className="text-red-600">Couldn't load the gallery.</p>}
+      {status === 'error' && <p className="text-red-600 dark:text-red-400">Couldn't load the gallery.</p>}
 
       {status === 'ready' && (
         <>
@@ -466,7 +466,7 @@ export default function AdminGallery() {
                         onClick={() => handleDelete(file)}
                         disabled={deletingName === file.name}
                         aria-label="Delete image"
-                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/90 text-ink-soft shadow-sm backdrop-blur-sm transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/90 text-ink-soft shadow-sm backdrop-blur-sm transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                       >
                         {deletingName === file.name ? (
                           <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
@@ -511,7 +511,7 @@ export default function AdminGallery() {
 
       {modalMode && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 sm:p-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-8"
           onClick={closeModal}
         >
           <div
@@ -635,7 +635,7 @@ export default function AdminGallery() {
               </div>
 
               {modalError && (
-                <p className="mb-4 flex items-center gap-2 text-[13px] font-medium text-red-600">
+                <p className="mb-4 flex items-center gap-2 text-[13px] font-medium text-red-600 dark:text-red-400">
                   <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                   {modalError}
                 </p>
@@ -646,7 +646,7 @@ export default function AdminGallery() {
                   type="button"
                   onClick={closeModal}
                   disabled={modalSubmitting}
-                  className="rounded-full border border-line px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-60"
+                  className="rounded-full border border-line px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-red-300 hover:text-red-600 dark:hover:border-red-900 dark:hover:text-red-400 disabled:opacity-60"
                 >
                   Cancel
                 </button>

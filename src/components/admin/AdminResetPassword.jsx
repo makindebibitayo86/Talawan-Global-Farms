@@ -64,14 +64,11 @@ export default function AdminResetPassword() {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-y-auto bg-canvas-alt px-4">
+    <div className="fixed inset-0 overflow-y-auto">
+      <div className="admin-shell flex min-h-full items-center justify-center px-4">
       <div
-        className="w-full rounded-[20px] bg-canvas p-9"
-        style={{
-          maxWidth: '380px',
-          border: '1px solid rgba(35, 41, 31, 0.14)',
-          boxShadow: '0 24px 48px -16px rgba(35, 41, 31, 0.28)',
-        }}
+        className="w-full rounded-[20px] border border-line glass-panel p-9 shadow-[0_24px_48px_-16px_rgba(35,41,31,0.28)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.6)]"
+        style={{ maxWidth: '380px' }}
       >
         <div className="mb-8 flex flex-col items-center gap-3">
           <div className="flex items-center gap-3">
@@ -87,7 +84,7 @@ export default function AdminResetPassword() {
         {linkInvalid && (
           <div className="space-y-5">
             <p className="flex items-start gap-2 text-[13px] leading-relaxed text-ink-soft">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" strokeWidth={1.75} />
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" strokeWidth={1.75} />
               This reset link is invalid or has expired. Request a new one from the sign-in page.
             </p>
             <button
@@ -152,7 +149,7 @@ export default function AdminResetPassword() {
             </div>
 
             {status === 'error' && (
-              <p className="flex items-center gap-2 text-sm font-medium text-red-600">
+              <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
                 <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                 {errorMsg}
               </p>
@@ -184,6 +181,7 @@ export default function AdminResetPassword() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

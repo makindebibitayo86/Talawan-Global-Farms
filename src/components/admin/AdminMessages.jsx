@@ -20,22 +20,22 @@ function formatFullTimestamp(iso) {
 function ReplyBadge({ count }) {
   if (!count) {
     return (
-      <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[12px] font-medium text-red-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+      <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[12px] font-medium text-red-700 dark:bg-red-950/50 dark:text-red-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-600 dark:bg-red-400" />
         Awaiting reply
       </span>
     )
   }
   if (count === 1) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[12px] font-medium text-blue-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[12px] font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-400">
         <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
         1 reply
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[12px] font-medium text-green-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-[12px] font-medium text-green-700 dark:bg-green-950/50 dark:text-green-400">
       <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
       {count} replies
     </span>
@@ -51,11 +51,15 @@ function ModalBrandMark() {
   )
 }
 
-function FieldRow({ label, children }) {
+function FieldRow({ label, children, tone = 'neutral' }) {
+  const toneClass =
+    tone === 'received'
+      ? 'border-l-[3px] border-blue-400 bg-gradient-to-br from-blue-500/15 via-blue-500/[0.06] to-transparent dark:from-blue-400/20 dark:via-blue-400/[0.08]'
+      : 'bg-ink/[0.03]'
   return (
     <div>
       <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-ink-soft">{label}</p>
-      <div className="rounded-[12px] bg-ink/[0.03] px-4 py-3">{children}</div>
+      <div className={`rounded-[12px] px-4 py-3 ${toneClass}`}>{children}</div>
     </div>
   )
 }
@@ -116,11 +120,11 @@ function MessageModal({ message, onClose, replies, repliesStatus, onReplySent })
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[20px] border border-line bg-canvas shadow-xl"
+        className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-[20px] border border-line glass-modal shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-4 border-b border-line px-8 py-6">
@@ -164,7 +168,7 @@ function MessageModal({ message, onClose, replies, repliesStatus, onReplySent })
                 <p className="text-[14px] text-ink-soft">{formatFullTimestamp(message.created_at)}</p>
               </FieldRow>
 
-              <FieldRow label="Message">
+              <FieldRow label="Message" tone="received">
                 <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
                   {message.message}
                 </p>
@@ -185,7 +189,7 @@ function MessageModal({ message, onClose, replies, repliesStatus, onReplySent })
               <p className="text-[13px] text-ink-soft">Loading replies…</p>
             )}
             {repliesStatus === 'error' && (
-              <p className="text-[13px] text-red-600">Couldn't load replies.</p>
+              <p className="text-[13px] text-red-600 dark:text-red-400">Couldn't load replies.</p>
             )}
             {repliesStatus === 'ready' && replies.length === 0 && (
               <p className="text-[13px] text-ink-soft">No replies sent yet.</p>
@@ -193,7 +197,7 @@ function MessageModal({ message, onClose, replies, repliesStatus, onReplySent })
             {repliesStatus === 'ready' && replies.length > 0 && (
               <div className="mb-6 space-y-3">
                 {replies.map((reply) => (
-                  <div key={reply.id} className="rounded-[12px] bg-primary/[0.06] px-4 py-3">
+                  <div key={reply.id} className="rounded-[12px] border-l-[3px] border-primary bg-primary/10 px-4 py-3">
                     <p className="mb-1 text-[11px] font-medium text-ink-soft">
                       You replied · {formatFullTimestamp(reply.created_at)}
                     </p>
@@ -236,7 +240,7 @@ function MessageModal({ message, onClose, replies, repliesStatus, onReplySent })
                 </p>
               )}
               {sendStatus === 'error' && (
-                <p className="mt-3 text-sm font-medium text-red-600">
+                <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
                   Couldn't send the reply. Please try again.
                 </p>
               )}
@@ -436,10 +440,10 @@ export default function AdminMessages() {
       </div>
 
       {status === 'loading' && <p className="text-ink-soft">Loading messages…</p>}
-      {status === 'error' && <p className="text-red-600">Couldn't load messages.</p>}
+      {status === 'error' && <p className="text-red-600 dark:text-red-400">Couldn't load messages.</p>}
 
       {status === 'ready' && messages.length === 0 && (
-        <div className="flex flex-col items-center gap-2 rounded-[16px] border border-line bg-canvas p-12 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-[16px] border border-line glass-panel p-12 text-center">
           <Mail className="h-6 w-6 text-ink-soft" strokeWidth={1.75} />
           <p className="text-ink-soft">No messages yet — enquiries submitted on the site will show up here.</p>
         </div>
@@ -448,7 +452,7 @@ export default function AdminMessages() {
       {status === 'ready' && messages.length > 0 && (
         <>
           {/* Desktop / tablet table */}
-          <div className="hidden overflow-hidden rounded-[16px] border border-line bg-canvas md:block">
+          <div className="hidden overflow-hidden rounded-[16px] border border-line glass-panel md:block">
             <table className="w-full table-fixed text-left">
               <colgroup>
                 <col className="w-[12%]" />
@@ -512,7 +516,7 @@ export default function AdminMessages() {
                           }}
                           disabled={deletingId === message.id}
                           aria-label="Delete"
-                          className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                         >
                           {deletingId === message.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
@@ -534,7 +538,7 @@ export default function AdminMessages() {
               <div
                 key={message.id}
                 onClick={() => setActiveMessage(message)}
-                className="cursor-pointer rounded-[16px] border border-line bg-canvas p-5"
+                className="cursor-pointer rounded-[16px] border border-line glass-panel p-5"
               >
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-[12px] text-ink-soft/70">
@@ -548,7 +552,7 @@ export default function AdminMessages() {
                     }}
                     disabled={deletingId === message.id}
                     aria-label="Delete"
-                    className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600"
+                    className="shrink-0 rounded-full p-2 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                   >
                     {deletingId === message.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
