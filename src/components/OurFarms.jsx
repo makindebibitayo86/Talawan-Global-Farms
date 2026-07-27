@@ -41,7 +41,9 @@ function buildFarmsFromRows(rows) {
       process: safeParseArray(get('process')),
       products: safeParseArray(get('products')),
       images: safeParseArray(get('images')),
-      video: get('video_url') || null,
+      // Parallel to `images` — videos[i] is the clip for images[i], or null/
+      // missing if that stage doesn't have one yet.
+      videos: safeParseArray(get('videos')),
     }
   })
 }
@@ -87,13 +89,16 @@ function FarmModal({ farm, onClose }) {
     }
   }, [onClose])
 
-  const [activeImage, setActiveImage] = useState(farm?.images[0])
+  const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
-    setActiveImage(farm?.images[0])
+    setActiveIndex(0)
   }, [farm])
 
   if (!farm) return null
+
+  const activeImage = farm.images[activeIndex]
+  const activeVideo = farm.videos?.[activeIndex] || null
 
   const Icon = farm.icon
   const whatsappHref = buildWhatsAppLink(
@@ -132,11 +137,14 @@ function FarmModal({ farm, onClose }) {
             at the top of the scrollable write-up below, so it scrolls away
             with the content instead of staying pinned. */}
         <div className="relative hidden bg-ink/5 md:block md:h-auto md:w-1/2">
-          {farm.video ? (
+          {activeVideo ? (
             <video
-              src={farm.video}
-              poster={farm.images[0]}
-              controls
+              key={activeVideo}
+              src={activeVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
               className="h-full w-full object-cover"
             />
           ) : (
@@ -163,11 +171,14 @@ function FarmModal({ farm, onClose }) {
                 to the card's rounded corners by the parent's overflow-hidden. */}
             <div className="-mx-5 -mt-5 mb-5 sm:-mx-6 sm:-mt-6 sm:mb-6 md:hidden">
               <div className="relative h-80 w-full bg-ink/5 sm:h-96">
-                {farm.video ? (
+                {activeVideo ? (
                   <video
-                    src={farm.video}
-                    poster={farm.images[0]}
-                    controls
+                    key={activeVideo}
+                    src={activeVideo}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -248,11 +259,11 @@ function FarmModal({ farm, onClose }) {
                   <button
                     key={src}
                     type="button"
-                    onClick={() => setActiveImage(src)}
-                    aria-label={`Show photo ${idx + 1} of ${farm.name}`}
-                    aria-pressed={activeImage === src}
-                    className={`aspect-square w-full overflow-hidden rounded-[12px] transition ${
-                      activeImage === src
+                    onClick={() => setActiveIndex(idx)}
+                    aria-label={`Show photo ${idx + 1} of ${farm.name}${farm.videos?.[idx] ? ' (video)' : ''}`}
+                    aria-pressed={activeIndex === idx}
+                    className={`relative aspect-square w-full overflow-hidden rounded-[12px] transition ${
+                      activeIndex === idx
                         ? 'ring-2 ring-primary ring-offset-2 ring-offset-canvas'
                         : 'opacity-90 hover:opacity-100'
                     }`}
@@ -262,6 +273,11 @@ function FarmModal({ farm, onClose }) {
                       alt={`${farm.name} at Talawan Global Farms`}
                       className="h-full w-full object-cover"
                     />
+                    {farm.videos?.[idx] && (
+                      <span className="absolute bottom-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-canvas/90 text-primary shadow-sm">
+                        <PlayCircle className="h-3 w-3" strokeWidth={2} />
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
