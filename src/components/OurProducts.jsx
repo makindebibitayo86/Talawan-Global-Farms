@@ -181,11 +181,23 @@ function ProductModal({ product, onClose }) {
 
         {/* Photo panel */}
         <div className="relative h-64 w-full shrink-0 bg-ink/5 md:h-auto md:w-1/2">
-          <img
-            src={img(product.image_filename)}
-            alt={product.name}
-            className="h-full w-full object-cover"
-          />
+          {product.video_path ? (
+            <video
+              key={product.video_path}
+              src={product.video_path}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={img(product.image_filename)}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
+          )}
           <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-canvas/90 px-3 py-1.5 text-[12px] font-medium text-ink shadow-sm backdrop-blur-sm">
             <Icon className="h-3.5 w-3.5 text-primary" strokeWidth={2} />
             {product.category}
