@@ -64,6 +64,62 @@ function FieldRow({ label, children, tone = 'neutral' }) {
   )
 }
 
+function DeleteConfirmModal({ message, onCancel, onConfirm, deleting }) {
+  // Prevent the page behind the modal from scrolling while it's open.
+  useEffect(() => {
+    if (!message) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [message])
+
+  if (!message) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm overflow-hidden rounded-[20px] border border-line glass-modal shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-7 text-center">
+          <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50">
+            <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" strokeWidth={2} />
+          </div>
+          <h3 className="mb-2 text-[16px] font-semibold text-ink">Delete this message?</h3>
+          <p className="text-[13px] leading-relaxed text-ink-soft">
+            The enquiry from <span className="font-medium text-ink">{message.name}</span> will be
+            permanently removed, along with its reply history. This can't be undone.
+          </p>
+        </div>
+        <div className="flex border-t border-line">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="flex-1 py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex flex-1 items-center justify-center gap-2 border-l border-line py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/30"
+          >
+            {deleting && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
+            {deleting ? 'Deleting' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MessageModal({ message, onClose, replies, repliesStatus, onReplySent }) {
   const [replyText, setReplyText] = useState('')
   const [sendStatus, setSendStatus] = useState('idle') // idle | sending | success | error
@@ -282,6 +338,7 @@ export default function AdminMessages() {
   const [repliesStatus, setRepliesStatus] = useState('idle') // idle | loading | ready | error
   const [totalCount, setTotalCount] = useState(0)
   const [replyCounts, setReplyCounts] = useState({})
+  const [confirmDeleteMessage, setConfirmDeleteMessage] = useState(null)
 
   const hasMore = messages.length < totalCount
 
@@ -398,7 +455,12 @@ export default function AdminMessages() {
   }, [activeMessage])
 
   async function handleDelete(message) {
-    if (!window.confirm(`Delete the message from "${message.name}"?`)) return
+    setConfirmDeleteMessage(message)
+  }
+
+  async function performDelete() {
+    const message = confirmDeleteMessage
+    if (!message) return
     setDeletingId(message.id)
     const { error } = await supabase.from('contact_messages').delete().eq('id', message.id)
     setDeletingId(null)
@@ -406,6 +468,7 @@ export default function AdminMessages() {
       alert(`Couldn't delete: ${error.message}`)
       return
     }
+    setConfirmDeleteMessage(null)
     if (activeMessage?.id === message.id) setActiveMessage(null)
     // Remove locally rather than re-fetching — keeps the rest of the
     // already-loaded batch in place instead of resetting to the first page.
@@ -609,6 +672,13 @@ export default function AdminMessages() {
             [reply.message_id]: (prev[reply.message_id] ?? 0) + 1,
           }))
         }}
+      />
+
+      <DeleteConfirmModal
+        message={confirmDeleteMessage}
+        onCancel={() => setConfirmDeleteMessage(null)}
+        onConfirm={performDelete}
+        deleting={deletingId === confirmDeleteMessage?.id}
       />
     </div>
   )

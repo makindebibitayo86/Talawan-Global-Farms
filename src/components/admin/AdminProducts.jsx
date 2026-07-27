@@ -32,6 +32,69 @@ function slugifyFilename(file) {
   return `${stamp}-${clean}`
 }
 
+function DeleteConfirmModal({ product, onCancel, onConfirm, deleting }) {
+  useEffect(() => {
+    if (!product) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [product])
+
+  return (
+    <AnimatePresence>
+      {product && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm md:p-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onCancel}
+        >
+          <motion.div
+            className="w-full max-w-sm overflow-hidden rounded-[20px] glass-modal shadow-2xl"
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-7 text-center">
+              <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50">
+                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" strokeWidth={2} />
+              </div>
+              <h3 className="mb-2 text-[16px] font-semibold text-ink">Delete this product?</h3>
+              <p className="text-[13px] leading-relaxed text-ink-soft">
+                <span className="font-medium text-ink">{product.name}</span> will be permanently
+                removed from your catalog. This can't be undone.
+              </p>
+            </div>
+            <div className="flex border-t border-line">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={deleting}
+                className="flex-1 py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={deleting}
+                className="flex flex-1 items-center justify-center gap-2 border-l border-line py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/30"
+              >
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
+                {deleting ? 'Deleting' : 'Delete'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 function ProductForm({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial?.id)
   const [form, setForm] = useState({ ...EMPTY_PRODUCT, ...initial })
@@ -334,6 +397,7 @@ export default function AdminProducts() {
   const [status, setStatus] = useState('loading')
   const [editing, setEditing] = useState(null) // null = closed, {} = new, {...} = edit
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmDeleteProduct, setConfirmDeleteProduct] = useState(null)
   const [page, setPage] = useState(1)
 
   async function load() {
@@ -358,7 +422,12 @@ export default function AdminProducts() {
   }, [])
 
   async function handleDelete(product) {
-    if (!window.confirm(`Delete "${product.name}"? This can't be undone.`)) return
+    setConfirmDeleteProduct(product)
+  }
+
+  async function performDelete() {
+    const product = confirmDeleteProduct
+    if (!product) return
     setDeletingId(product.id)
     const { error } = await supabase.from('products').delete().eq('id', product.id)
     setDeletingId(null)
@@ -366,6 +435,7 @@ export default function AdminProducts() {
       alert(`Couldn't delete: ${error.message}`)
       return
     }
+    setConfirmDeleteProduct(null)
     load()
   }
 
@@ -584,6 +654,13 @@ export default function AdminProducts() {
           />
         )}
       </AnimatePresence>
+
+      <DeleteConfirmModal
+        product={confirmDeleteProduct}
+        onCancel={() => setConfirmDeleteProduct(null)}
+        onConfirm={performDelete}
+        deleting={deletingId === confirmDeleteProduct?.id}
+      />
     </div>
   )
 }

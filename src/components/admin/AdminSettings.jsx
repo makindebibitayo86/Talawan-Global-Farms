@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, KeyRound, Check, X } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, KeyRound, Check, X, Info } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import HeroSettingsTab from './HeroSettingsTab'
 import AboutSettingsTab from './AboutSettingsTab'
@@ -50,7 +50,7 @@ function PasswordField({ id, label, value, onChange, show, onToggleShow, autoCom
           autoComplete={autoComplete}
           value={value}
           onChange={onChange}
-          className="w-full rounded-sm border border-line bg-canvas-alt/60 px-4 py-3 pr-11 text-ink outline-none transition focus:border-primary focus:bg-canvas focus:ring-4 focus:ring-primary/10"
+          className="w-full rounded-sm border border-line bg-canvas-alt/60 px-4 py-3 pr-11 text-ink outline-none transition focus:border-primary focus:bg-canvas focus:ring-4 focus:ring-primary/10 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-strong-password-auto-fill-button]:hidden"
         />
         <button
           type="button"
@@ -131,7 +131,8 @@ function AccountTab() {
   const [errorMsg, setErrorMsg] = useState('')
 
   const passwordChecks = useMemo(() => getPasswordChecks(form.newPassword), [form.newPassword])
-  const isPasswordStrongEnough = passwordChecks.every((c) => c.passed)
+  const passedCount = passwordChecks.filter((c) => c.passed).length
+  const isPasswordStrongEnough = passedCount >= 3 // Fair or Strong
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -149,7 +150,7 @@ function AccountTab() {
 
     if (!isPasswordStrongEnough) {
       setStatus('error')
-      setErrorMsg('New password must meet all the requirements below.')
+      setErrorMsg('New password is too weak — meet at least 3 of the requirements below.')
       return
     }
     if (form.newPassword !== form.confirmPassword) {
@@ -200,6 +201,12 @@ function AccountTab() {
         <h2 className="font-medium">Change password</h2>
       </div>
 
+      <p className="mb-5 flex items-start gap-2 rounded-md border border-line bg-canvas-alt/60 px-3 py-2.5 text-[12px] leading-relaxed text-ink-soft">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2} />
+        Write your new password down somewhere safe. If you forget it, only the approved admin
+        Gmail account on file can be used to recover access.
+      </p>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <PasswordField
           id="currentPassword"
@@ -224,15 +231,31 @@ function AccountTab() {
           <PasswordStrength value={form.newPassword} />
         </div>
 
-        <PasswordField
-          id="confirmPassword"
-          label="Confirm new password"
-          value={form.confirmPassword}
-          onChange={handleChange}
-          show={showFields.confirm}
-          onToggleShow={() => toggleShow('confirm')}
-          autoComplete="new-password"
-        />
+        <div>
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm new password"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            show={showFields.confirm}
+            onToggleShow={() => toggleShow('confirm')}
+            autoComplete="new-password"
+          />
+          {form.confirmPassword.length > 0 && (
+            <p
+              className={`mt-2 flex items-center gap-1.5 text-[12px] font-medium ${
+                form.newPassword === form.confirmPassword ? 'text-primary' : 'text-red-600'
+              }`}
+            >
+              {form.newPassword === form.confirmPassword ? (
+                <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+              ) : (
+                <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+              )}
+              {form.newPassword === form.confirmPassword ? 'Passwords match' : "Passwords don't match"}
+            </p>
+          )}
+        </div>
 
         {status === 'error' && (
           <p className="flex items-center gap-2 text-sm font-medium text-red-600">

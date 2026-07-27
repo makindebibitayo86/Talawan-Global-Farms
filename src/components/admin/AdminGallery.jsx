@@ -45,6 +45,69 @@ function useIsMobile() {
   return isMobile
 }
 
+function DeleteConfirmModal({ file, usedBy, onCancel, onConfirm, deleting }) {
+  useEffect(() => {
+    if (!file) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [file])
+
+  if (!file) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm overflow-hidden rounded-[20px] border border-line bg-canvas shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-7 text-center">
+          <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50">
+            <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" strokeWidth={2} />
+          </div>
+          <h3 className="mb-2 text-[16px] font-semibold text-ink">Delete this photo?</h3>
+          {usedBy ? (
+            <p className="text-[13px] leading-relaxed text-ink-soft">
+              <span className="font-medium text-ink">{file.name}</span> is currently used as the
+              photo for the product <span className="font-medium text-ink">"{usedBy}"</span>.
+              Deleting it will break that product's image.
+            </p>
+          ) : (
+            <p className="text-[13px] leading-relaxed text-ink-soft">
+              <span className="font-medium text-ink">{file.name}</span> will be permanently
+              removed. This can't be undone.
+            </p>
+          )}
+        </div>
+        <div className="flex border-t border-line">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="flex-1 py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex flex-1 items-center justify-center gap-2 border-l border-line py-3.5 text-[13px] font-medium uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/30"
+          >
+            {deleting && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}
+            {deleting ? 'Deleting' : usedBy ? 'Delete anyway' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminGallery() {
   const isMobile = useIsMobile()
   const PAGE_SIZE = isMobile ? PAGE_SIZE_MOBILE : PAGE_SIZE_DEFAULT
@@ -52,6 +115,7 @@ export default function AdminGallery() {
   const [productMap, setProductMap] = useState(new Map())
   const [status, setStatus] = useState('loading')
   const [deletingName, setDeletingName] = useState(null)
+  const [confirmDeleteFile, setConfirmDeleteFile] = useState(null)
   const [page, setPage] = useState(1)
 
   // Reordering — a separate working copy so drags don't touch `files`
@@ -256,11 +320,12 @@ export default function AdminGallery() {
   }
 
   async function handleDelete(file) {
-    const usedBy = productMap.get(file.name)
-    const warning = usedBy
-      ? `"${file.name}" is currently used as the photo for the product "${usedBy}". Deleting it will break that product's image. Delete anyway?`
-      : `Delete "${file.name}"? This can't be undone.`
-    if (!window.confirm(warning)) return
+    setConfirmDeleteFile(file)
+  }
+
+  async function performDelete() {
+    const file = confirmDeleteFile
+    if (!file) return
 
     setDeletingName(file.name)
     const { error } = await supabase.storage.from(BUCKET).remove([file.name])
@@ -274,6 +339,7 @@ export default function AdminGallery() {
     if (orderErr) console.error('Failed to clean up order row for deleted file:', orderErr)
 
     setDeletingName(null)
+    setConfirmDeleteFile(null)
     load()
   }
 
@@ -668,6 +734,14 @@ export default function AdminGallery() {
           </div>
         </div>
       )}
+
+      <DeleteConfirmModal
+        file={confirmDeleteFile}
+        usedBy={confirmDeleteFile ? productMap.get(confirmDeleteFile.name) : null}
+        onCancel={() => setConfirmDeleteFile(null)}
+        onConfirm={performDelete}
+        deleting={deletingName === confirmDeleteFile?.name}
+      />
     </div>
   )
 }

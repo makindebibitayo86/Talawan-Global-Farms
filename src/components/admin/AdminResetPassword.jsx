@@ -5,6 +5,55 @@ import { supabase } from '../../lib/supabaseClient'
 import logoIcon from '../../assets/logo-icon-color.png'
 import logoWordmark from '../../assets/logo-wordmark-color.png'
 
+const PASSWORD_RULES = [
+  { key: 'length', label: 'At least 8 characters', test: (v) => v.length >= 8 },
+  { key: 'uppercase', label: 'One uppercase letter', test: (v) => /[A-Z]/.test(v) },
+  { key: 'lowercase', label: 'One lowercase letter', test: (v) => /[a-z]/.test(v) },
+  { key: 'number', label: 'One number', test: (v) => /[0-9]/.test(v) },
+]
+
+const STRENGTH_LABELS = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong']
+
+function PasswordRequirements({ value }) {
+  const metCount = PASSWORD_RULES.filter((rule) => rule.test(value)).length
+  const pct = (metCount / PASSWORD_RULES.length) * 100
+
+  return (
+    <div className="mt-3 space-y-2.5">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-line/60">
+        <div
+          className={`h-full rounded-full transition-all duration-300 ${
+            metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-amber-500' : 'bg-primary'
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-[12px] font-medium text-ink-soft">
+        {STRENGTH_LABELS[metCount]} password
+      </p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        {PASSWORD_RULES.map((rule) => {
+          const met = rule.test(value)
+          return (
+            <span
+              key={rule.key}
+              className={`flex items-center gap-1.5 text-[12px] ${
+                met ? 'text-ink-soft' : 'text-ink-soft/50'
+              }`}
+            >
+              <CheckCircle2
+                className={`h-3.5 w-3.5 shrink-0 ${met ? 'text-primary' : 'text-ink-soft/30'}`}
+                strokeWidth={1.75}
+              />
+              {rule.label}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminResetPassword() {
   const navigate = useNavigate()
   const [ready, setReady] = useState(false) // becomes true once the recovery link has been verified
@@ -130,6 +179,7 @@ export default function AdminResetPassword() {
                   {showPassword ? <EyeOff className="h-4 w-4" strokeWidth={1.75} /> : <Eye className="h-4 w-4" strokeWidth={1.75} />}
                 </button>
               </div>
+              {password.length > 0 && <PasswordRequirements value={password} />}
             </div>
 
             <div>
@@ -146,6 +196,23 @@ export default function AdminResetPassword() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="mt-2 w-full rounded-sm border border-line bg-canvas-alt/60 px-4 py-3 text-ink outline-none transition focus:border-primary focus:bg-canvas focus:ring-4 focus:ring-primary/10"
               />
+              {confirmPassword.length > 0 && (
+                <>
+                  <PasswordRequirements value={confirmPassword} />
+                  <p
+                    className={`mt-2.5 flex items-center gap-1.5 text-[12px] font-medium ${
+                      password === confirmPassword ? 'text-primary' : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {password === confirmPassword ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                    ) : (
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                    )}
+                    {password === confirmPassword ? 'Passwords match' : "Passwords don't match"}
+                  </p>
+                </>
+              )}
             </div>
 
             {status === 'error' && (
