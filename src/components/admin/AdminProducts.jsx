@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, X, Loader2, AlertCircle, Upload, GripVertical, RefreshCw,
-  Egg, Bird, TreePalm, Waves,
+  Egg, Bird, TreePalm, Waves, Video, Link2,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -10,6 +10,12 @@ const BUCKET = 'farm-images'
 const SUPABASE_STORAGE_URL =
   'https://bhcyamtmorvzfckmlhfq.supabase.co/storage/v1/object/public/farm-images/'
 const img = (filename) => (filename ? `${SUPABASE_STORAGE_URL}${filename}` : null)
+
+// Videos reuse the same "farm-videos" bucket the farms side already uploads
+// to (public, mp4/webm/mov/ogg, 200MB cap) rather than a new dedicated one —
+// keeps one place to manage video storage settings.
+const VIDEO_BUCKET = 'farm-videos'
+const VIDEO_ACCEPT = 'video/mp4,video/webm,video/quicktime,video/ogg'
 
 const ICON_OPTIONS = ['egg', 'bird', 'tree-palm', 'waves']
 const ICON_MAP = { egg: Egg, bird: Bird, 'tree-palm': TreePalm, waves: Waves }
@@ -23,6 +29,7 @@ const EMPTY_PRODUCT = {
   details: [],
   specs: [],
   image_filename: '',
+  video_path: '',
   sort_order: 0,
 }
 
@@ -100,6 +107,8 @@ function ProductForm({ initial, onClose, onSaved }) {
   const [form, setForm] = useState({ ...EMPTY_PRODUCT, ...initial })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [videoLinkDraft, setVideoLinkDraft] = useState('')
   const [error, setError] = useState('')
 
   function set(field, value) {
@@ -151,6 +160,41 @@ function ProductForm({ initial, onClose, onSaved }) {
     set('image_filename', filename)
   }
 
+  async function handleVideoUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingVideo(true)
+    setError('')
+
+    const filename = slugifyFilename(file)
+    const { error: uploadError } = await supabase.storage
+      .from(VIDEO_BUCKET)
+      .upload(filename, file, { upsert: true })
+
+    if (uploadError) {
+      setUploadingVideo(false)
+      setError(`Video upload failed: ${uploadError.message}`)
+      return
+    }
+
+    const { data } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(filename)
+    setUploadingVideo(false)
+    set('video_path', data.publicUrl)
+    setVideoLinkDraft('')
+  }
+
+  function handleAddVideoLink() {
+    const url = videoLinkDraft.trim()
+    if (!url) return
+    set('video_path', url)
+    setVideoLinkDraft('')
+  }
+
+  function handleRemoveVideo() {
+    set('video_path', '')
+    setVideoLinkDraft('')
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
@@ -165,6 +209,7 @@ function ProductForm({ initial, onClose, onSaved }) {
       details: form.details.filter((d) => d.trim() !== ''),
       specs: form.specs.filter((s) => s.label.trim() !== '' || s.value.trim() !== ''),
       image_filename: form.image_filename,
+      video_path: form.video_path || null,
       sort_order: Number(form.sort_order) || 0,
     }
 
@@ -303,6 +348,78 @@ function ProductForm({ initial, onClose, onSaved }) {
               </div>
             </div>
 
+            {/* Video — optional; admin can either upload a file (goes to the
+                farm-videos bucket) or paste an existing link (e.g. a video
+                already hosted elsewhere). Whichever they use last wins. */}
+            <div className="col-span-2">
+              <label className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">
+                Video <span className="normal-case text-ink-soft/60">(optional)</span>
+              </label>
+              <div className="mt-1.5 flex items-start gap-4">
+                {form.video_path ? (
+                  <video
+                    key={form.video_path}
+                    src={form.video_path}
+                    muted
+                    loop
+                    playsInline
+                    className="h-44 w-44 shrink-0 rounded-md bg-ink/5 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-md bg-ink/5 text-ink-soft">
+                    <Video className="h-10 w-10" strokeWidth={1.75} />
+                  </div>
+                )}
+
+                <div className="flex flex-1 flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer rounded-full border border-line px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink transition-colors hover:border-primary hover:text-primary">
+                      {uploadingVideo ? 'Uploading…' : 'Upload video'}
+                      <input
+                        type="file"
+                        accept={VIDEO_ACCEPT}
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                        disabled={uploadingVideo}
+                      />
+                    </label>
+                    {form.video_path && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        className="rounded-full border border-line px-4 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-red-400 hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        Remove video
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-4 w-4 shrink-0 text-ink-soft/50" strokeWidth={1.75} />
+                    <input
+                      type="url"
+                      placeholder="Or paste a video link"
+                      value={videoLinkDraft}
+                      onChange={(e) => setVideoLinkDraft(e.target.value)}
+                      className="w-full rounded-sm border border-line bg-canvas px-3 py-2 text-[13px] text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddVideoLink}
+                      disabled={!videoLinkDraft.trim()}
+                      className="shrink-0 rounded-full border border-line px-3 py-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-40"
+                    >
+                      Use link
+                    </button>
+                  </div>
+
+                  {form.video_path && (
+                    <p className="truncate text-[11px] text-ink-soft/70">{form.video_path}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Details list */}
             <div className="col-span-2">
               <div className="flex items-center justify-between">
@@ -379,7 +496,7 @@ function ProductForm({ initial, onClose, onSaved }) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={saving || uploading}
+            disabled={saving || uploading || uploadingVideo}
             className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-canvas transition-colors hover:bg-primary-dark disabled:opacity-70"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />}

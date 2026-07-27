@@ -9,6 +9,8 @@ import {
   ChevronDown,
   ChevronRight,
   ImagePlus,
+  Video,
+  Link2,
   X,
   Egg,
   Bird,
@@ -73,7 +75,7 @@ function rowsFromFarms(farms) {
       { key: `${p}.process`, value: JSON.stringify(farm.process), type: 'text', section: 'farms' },
       { key: `${p}.products`, value: JSON.stringify(farm.products), type: 'text', section: 'farms' },
       { key: `${p}.images`, value: JSON.stringify(farm.images), type: 'text', section: 'farms' },
-      { key: `${p}.video_url`, value: farm.video_url || null, type: 'video', section: 'farms' }
+      { key: `${p}.videos`, value: JSON.stringify(farm.videos || []), type: 'text', section: 'farms' }
     )
   }
   return rows
@@ -89,7 +91,7 @@ function emptyFarm(slug) {
     process: [],
     products: [],
     images: [],
-    video_url: '',
+    videos: [],
   }
 }
 
@@ -223,6 +225,133 @@ function ImagesEditor({ slug, images, onChange }) {
       {images.length === 0 && !uploading && (
         <p className="mt-2 text-[12px] text-ink-soft">
           At least one photo is recommended — the first photo becomes the cover image.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// Videos are parallel to images — videos[i] is the clip for images[i], or
+// null if that stage doesn't have one yet. Admin can either upload a file
+// (goes to the "farm-videos" bucket) or paste a link (e.g. an external CDN
+// URL) into the same slot.
+function VideosEditor({ slug, images, videos, onChange }) {
+  const [uploadingIdx, setUploadingIdx] = useState(null)
+  const [error, setError] = useState('')
+  const [linkDrafts, setLinkDrafts] = useState({})
+
+  function videoAt(idx) {
+    return videos?.[idx] || null
+  }
+
+  function setVideoAt(idx, value) {
+    const next = [...(videos || [])]
+    while (next.length <= idx) next.push(null)
+    next[idx] = value || null
+    onChange(next)
+  }
+
+  async function handleUpload(idx, file) {
+    if (!file) return
+    setError('')
+    setUploadingIdx(idx)
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
+    const path = `${slug}-${idx}-${Date.now()}-${safeName}`
+    const { error: uploadError } = await supabase.storage
+      .from('farm-videos')
+      .upload(path, file, { upsert: false })
+
+    if (uploadError) {
+      setError(uploadError.message)
+      setUploadingIdx(null)
+      return
+    }
+    const { data: publicUrlData } = supabase.storage.from('farm-videos').getPublicUrl(path)
+    setVideoAt(idx, publicUrlData.publicUrl)
+    setUploadingIdx(null)
+  }
+
+  function applyLink(idx) {
+    const draft = (linkDrafts[idx] ?? '').trim()
+    if (!draft) return
+    setVideoAt(idx, draft)
+    setLinkDrafts((d) => ({ ...d, [idx]: '' }))
+  }
+
+  return (
+    <div>
+      <span className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">
+        Videos (one per photo, optional)
+      </span>
+      <div className="mt-2 space-y-3">
+        {images.length === 0 && (
+          <p className="text-[12px] text-ink-soft">Add photos first — each video pairs with a photo slot.</p>
+        )}
+        {images.map((src, idx) => {
+          const current = videoAt(idx)
+          const isUploading = uploadingIdx === idx
+          return (
+            <div key={idx} className="flex items-start gap-3 rounded-[12px] border border-line p-3">
+              <img src={src} alt={`Photo ${idx + 1}`} className="h-14 w-14 shrink-0 rounded-[8px] object-cover" />
+              <div className="min-w-0 flex-1 space-y-2">
+                {current ? (
+                  <div className="flex items-center gap-2 rounded-sm bg-canvas-alt/60 px-3 py-2">
+                    <Video className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2} />
+                    <span className="truncate text-[12px] font-medium text-ink" title={current}>
+                      {current}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setVideoAt(idx, null)}
+                      aria-label="Remove video"
+                      className="ml-auto shrink-0 rounded-full p-1 text-ink-soft transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                    >
+                      <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="block text-[12px] text-ink-soft">No video for this photo yet.</span>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-ink/20 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-ink-soft transition-colors hover:border-primary hover:text-primary">
+                    {isUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+                    ) : (
+                      <Video className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    )}
+                    {isUploading ? 'Uploading' : 'Upload file'}
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      disabled={isUploading}
+                      onChange={(e) => handleUpload(idx, e.target.files?.[0])}
+                    />
+                  </label>
+
+                  <div className="flex items-center gap-1.5">
+                    <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-soft" strokeWidth={1.75} />
+                    <input
+                      value={linkDrafts[idx] ?? ''}
+                      onChange={(e) => setLinkDrafts((d) => ({ ...d, [idx]: e.target.value }))}
+                      onBlur={() => applyLink(idx)}
+                      onKeyDown={(e) => e.key === 'Enter' && applyLink(idx)}
+                      placeholder="Paste video link"
+                      className="w-40 rounded-sm border border-line bg-canvas-alt/60 px-2.5 py-1.5 text-[12px] text-ink outline-none transition focus:border-primary focus:bg-canvas focus:ring-4 focus:ring-primary/10 sm:w-56"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {error && (
+        <p className="mt-2 flex items-center gap-1.5 text-[12px] font-medium text-red-600 dark:text-red-400">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+          {error}
         </p>
       )}
     </div>
@@ -380,17 +509,12 @@ function FarmCard({ farm, isOpen, onToggle, onChange, onDelete, onMove, isFirst,
 
           <ImagesEditor slug={farm.slug} images={farm.images} onChange={(v) => set('images', v)} />
 
-          <div>
-            <label className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">
-              Video URL (optional)
-            </label>
-            <input
-              value={farm.video_url || ''}
-              onChange={(e) => set('video_url', e.target.value)}
-              placeholder="/videos/farm-name.mp4"
-              className="mt-2 w-full rounded-sm border border-line bg-canvas-alt/60 px-4 py-3 text-ink outline-none transition focus:border-primary focus:bg-canvas focus:ring-4 focus:ring-primary/10"
-            />
-          </div>
+          <VideosEditor
+            slug={farm.slug}
+            images={farm.images}
+            videos={farm.videos}
+            onChange={(v) => set('videos', v)}
+          />
 
           {status === 'error' && (
             <p className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
@@ -582,7 +706,7 @@ export default function FarmsSettingsTab() {
           process: safeParseArray(get('process')),
           products: safeParseArray(get('products')),
           images: safeParseArray(get('images')),
-          video_url: get('video_url') || '',
+          videos: safeParseArray(get('videos')),
         }
       })
 
