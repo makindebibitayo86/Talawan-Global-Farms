@@ -575,10 +575,10 @@ export default function AdminProducts() {
             onClick={load}
             disabled={status === 'loading'}
             aria-label="Refresh"
-            className="flex items-center gap-2 rounded-full border border-line px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            className="flex items-center gap-2 rounded-full border border-line px-2.5 py-2.5 text-[13px] font-medium uppercase tracking-[0.08em] text-ink-soft transition-colors hover:border-primary hover:text-primary disabled:opacity-60 sm:px-4"
           >
             <RefreshCw className={`h-4 w-4 ${status === 'loading' ? 'animate-spin' : ''}`} strokeWidth={2} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
             type="button"

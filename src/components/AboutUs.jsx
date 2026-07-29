@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -56,7 +56,15 @@ const fadeInFromRight = {
 }
 
 export default function AboutUs() {
+  const sectionRef = useRef(null)
   const [content, setContent] = useState(ABOUT_DEFAULTS)
+
+  const handleScrollDown = () => {
+    const next = sectionRef.current?.nextElementSibling
+    if (next) {
+      next.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +97,7 @@ export default function AboutUs() {
   return (
     <section
       id="about"
+      ref={sectionRef}
       className="bg-canvas-alt px-3 pb-20 pt-28 md:px-6 md:pb-28 md:pt-40"
     >
       <div className="mx-auto max-w-7xl">
@@ -183,9 +192,11 @@ export default function AboutUs() {
                 labels each ride their own arc, centered with text-anchor
                 + startOffset 50%, so spacing is exactly even on both sides
                 no matter how long the text is. */}
-            <div
-              className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-canvas shadow-lg ring-4 ring-canvas-alt sm:h-32 sm:w-32"
-              aria-hidden="true"
+            <button
+              type="button"
+              onClick={handleScrollDown}
+              aria-label="Scroll to next section"
+              className="group absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-canvas shadow-lg ring-4 ring-canvas-alt transition-transform hover:scale-105 sm:h-32 sm:w-32"
             >
               <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
                 <defs>
@@ -211,7 +222,7 @@ export default function AboutUs() {
                 <span className="text-[11px] tracking-[0.2em] opacity-90">{content['about.seal_since_label']}</span>
                 <span className="text-xl">{foundingYear}</span>
               </span>
-            </div>
+            </button>
           </motion.div>
         </div>
       </div>

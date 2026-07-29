@@ -11,6 +11,7 @@ import {
   XCircle,
   X,
   Plus,
+  ChevronDown,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -92,6 +93,8 @@ function SendConfirmModal({ open, recipientCount, subject, onCancel, onConfirm, 
 // failed_emails populated even though the counts are non-zero, so that
 // case is called out explicitly rather than just showing an empty list.
 function CampaignDetailModal({ campaign, onClose }) {
+  const [recipientsOpen, setRecipientsOpen] = useState(false)
+
   useEffect(() => {
     if (!campaign) return
     const previousOverflow = document.body.style.overflow
@@ -99,6 +102,10 @@ function CampaignDetailModal({ campaign, onClose }) {
     return () => {
       document.body.style.overflow = previousOverflow
     }
+  }, [campaign])
+
+  useEffect(() => {
+    setRecipientsOpen(false)
   }, [campaign])
 
   if (!campaign) return null
@@ -131,17 +138,32 @@ function CampaignDetailModal({ campaign, onClose }) {
           </button>
         </div>
 
-        <div className="grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-2">
+        <div
+          className="grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-2"
+          onClick={() => setRecipientsOpen(false)}
+        >
           {/* Message */}
           <div className="overflow-y-auto border-b border-line p-6 md:border-b-0 md:border-r">
             <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">Message</p>
             <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-ink">{campaign.message}</p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3 text-[12px]">
-              <span className="flex items-center gap-1 text-ink-soft">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setRecipientsOpen((o) => !o)
+                }}
+                aria-expanded={recipientsOpen}
+                className="flex items-center gap-1 text-ink-soft md:pointer-events-none"
+              >
                 <Users className="h-3.5 w-3.5" strokeWidth={2} />
                 {campaign.recipient_count} recipient{campaign.recipient_count === 1 ? '' : 's'}
-              </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform md:hidden ${recipientsOpen ? 'rotate-180' : ''}`}
+                  strokeWidth={2}
+                />
+              </button>
               <span className="flex items-center gap-1 text-primary">
                 <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
                 {campaign.sent_count} sent
@@ -155,8 +177,14 @@ function CampaignDetailModal({ campaign, onClose }) {
             </div>
           </div>
 
-          {/* Recipients */}
-          <div className="overflow-y-auto p-6">
+          {/* Recipients — always visible side-by-side on md+; on mobile it's
+              collapsed by default and only expands when the "N recipients"
+              badge above is tapped, so the list doesn't push the message
+              off-screen. */}
+          <div
+            className={`overflow-y-auto p-6 md:block ${recipientsOpen ? 'block' : 'hidden'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <p className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.1em] text-ink-soft">
               <Users className="h-3.5 w-3.5 text-primary" strokeWidth={2} />
               Recipients
@@ -643,10 +671,11 @@ export default function AdminNewsletter() {
               loadCampaigns()
             }}
             disabled={refreshing || status === 'loading'}
-            className="flex items-center gap-2 rounded-full border border-line bg-canvas px-4 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Refresh"
+            className="flex items-center gap-2 rounded-full border border-line bg-canvas px-2.5 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 sm:px-4"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
 
           <button
@@ -775,9 +804,9 @@ export default function AdminNewsletter() {
                     onClick={() => setSelectedCampaign(campaign)}
                     className="w-full rounded-[14px] border border-line bg-canvas-alt/40 p-4 text-left transition-colors hover:bg-ink/[0.03]"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="min-w-0 truncate font-medium text-ink">{campaign.subject}</p>
-                      <span className="shrink-0 text-[12px] text-ink-soft">{formatDateTime(campaign.created_at)}</span>
+                    <div>
+                      <p className="truncate font-medium text-ink">{campaign.subject}</p>
+                      <span className="mt-0.5 block text-[12px] text-ink-soft">{formatDateTime(campaign.created_at)}</span>
                     </div>
                     <p className="mt-1 line-clamp-2 text-[13px] text-ink-soft">{campaign.message}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px]">
