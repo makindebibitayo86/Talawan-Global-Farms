@@ -191,15 +191,17 @@ export default function AboutUs() {
                 <defs>
                   {/* Upper arc: spans 200°, centered on the top vertex (50,14) */}
                   <path id="about-seal-top" d="M 14.55,56.25 A 36,36 0 1,1 85.45,56.25" />
-                  {/* Lower arc: spans 140°, centered on the bottom vertex (50,86) */}
-                  <path id="about-seal-bottom" d="M 16.17,62.31 A 36,36 0 0,0 83.83,62.31" />
+                  {/* Lower arc: same 200° span and radius as the top arc, mirrored
+                      vertically so it curves under the circle (through the bottom
+                      vertex) instead of over it. */}
+                  <path id="about-seal-bottom" d="M 14.55,43.75 A 36,36 0 1,0 85.45,43.75" />
                 </defs>
-                <text fill="currentColor" fontSize="6.7" letterSpacing="1.1">
+                <text fill="currentColor" fontSize="7.9" letterSpacing="1.1">
                   <textPath href="#about-seal-top" startOffset="50%" textAnchor="middle">
                     {content['about.seal_top_text']}
                   </textPath>
                 </text>
-                <text fill="currentColor" fontSize="5.4" letterSpacing="0.8">
+                <text fill="currentColor" fontSize="7.3" letterSpacing="0.8">
                   <textPath href="#about-seal-bottom" startOffset="50%" textAnchor="middle">
                     {content['about.seal_bottom_text']}
                   </textPath>

@@ -5,11 +5,11 @@ import logoWordmark from '../assets/logo-wordmark-color.png'
 
 const FOOTER_LINKS = {
   Explore: [
-    { label: 'Home', href: '#home' },
     { label: 'About Us', href: '#about' },
     { label: 'Our Farms', href: '#farms' },
     { label: 'Products', href: '#products' },
     { label: 'Gallery', href: '#gallery' },
+    { label: 'Team', href: '#team' },
   ],
   Company: [
     { label: 'About Talawan', href: '#about-talawan' },
@@ -288,7 +288,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-line bg-canvas px-[clamp(1rem,3vw,3rem)] pb-12 pt-16 md:pt-24">
+    <footer className="border-t border-line bg-canvas-alt px-[clamp(1rem,3vw,3rem)] pb-12 pt-16 md:pt-24">
       <div className="mx-auto max-w-[1400px]">
         {/* Top: brand + nav columns */}
         <div className="mb-20 grid grid-cols-1 gap-16 md:grid-cols-[1fr_1.6fr] md:gap-24">

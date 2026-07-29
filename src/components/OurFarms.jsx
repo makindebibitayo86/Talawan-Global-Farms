@@ -342,12 +342,13 @@ export default function OurFarms() {
     <section id="farms" className="bg-canvas py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-3 md:px-6">
         {/* Header */}
-        <div className="mb-14 flex flex-col items-end gap-4 text-right md:mb-16 md:ml-auto md:max-w-2xl">
+        <div className="mb-14 flex flex-col items-center gap-4 text-center md:mb-16 md:mx-auto md:max-w-2xl">
           <div className="flex items-center gap-3">
             <span className="h-px w-10 bg-accent" aria-hidden="true" />
             <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-primary">
               {header.label}
             </span>
+            <span className="h-px w-10 bg-accent" aria-hidden="true" />
           </div>
           <h2 className="font-display text-5xl font-bold leading-[1.1] text-ink sm:text-6xl">
             {header.heading.split('\n').map((line, idx, arr) => (
@@ -357,8 +358,13 @@ export default function OurFarms() {
               </span>
             ))}
           </h2>
-          <p className="max-w-xl text-justify text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
-            {header.intro}
+          <p className="max-w-xl text-center text-base font-medium leading-relaxed text-ink-soft sm:text-lg">
+            {header.intro.split('\n').map((line, idx, arr) => (
+              <span key={idx}>
+                {line}
+                {idx < arr.length - 1 && <br />}
+              </span>
+            ))}
           </p>
         </div>
       </div>

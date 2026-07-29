@@ -44,9 +44,14 @@ export function sendContactMessage({ name, email, phone, message }) {
 // Sends the admin's reply to the enquirer's email address, from the
 // brand's own EmailJS-connected inbox — not a mailto: link.
 //
+// This template (Auto-Reply / template_uwyyr3i) is shared with the
+// newsletter-campaign edge function, which reuses the same {{to_name}},
+// {{reply_message}}, and {{subject}} fields for broadcast sends — see
+// that function for how it fills them in for campaigns instead of replies.
+//
 // One-time setup needed in the EmailJS dashboard:
-// 1. Create a new template (Email Templates > Create New Template).
-// 2. Set "To Email" on the template to {{to_email}}.
+// 1. Set "To Email" on the template to {{to_email}}.
+// 2. Set "Subject" on the template to {{subject}}.
 // 3. Use {{to_name}}, {{to_email}}, and {{reply_message}} in the body —
 //    e.g. "Hi {{to_name}}, ... {{reply_message}} ... Talawan Global Farms".
 // 4. Copy its Template ID into VITE_EMAILJS_REPLY_TEMPLATE_ID in .env.
@@ -66,6 +71,10 @@ export function sendReplyToEnquirer({ toName, toEmail, replyMessage }) {
       to_name: toName,
       to_email: toEmail,
       reply_message: replyMessage,
+      // Fixed subject for individual replies — the template's Subject
+      // field now reads {{subject}} instead of a hardcoded string, since
+      // it's shared with newsletter-campaign, which sets its own per send.
+      subject: 'Re: Your enquiry to Talawan Global Farms',
     },
     { publicKey: PUBLIC_KEY }
   )

@@ -7,7 +7,9 @@ import AboutSettingsTab from './AboutSettingsTab'
 import FarmsSettingsTab from './FarmsSettingsTab'
 import ProductsSettingsTab from './ProductsSettingsTab'
 import GallerySettingsTab from './GallerySettingsTab'
+import TeamSettingsTab from './TeamSettingsTab'
 import ContactSettingsTab from './ContactSettingsTab'
+import NewsletterSettingsTab from './NewsletterSettingsTab'
 
 const EMPTY_FORM = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
@@ -27,7 +29,9 @@ const TABS = [
   { key: 'farms' },
   { key: 'products' },
   { key: 'gallery' },
+  { key: 'team' },
   { key: 'contact' },
+  { key: 'newsletter' },
   { key: 'account' },
 ]
 
@@ -302,7 +306,9 @@ export default function AdminSettings() {
       {activeTab === 'farms' && <FarmsSettingsTab />}
       {activeTab === 'products' && <ProductsSettingsTab />}
       {activeTab === 'gallery' && <GallerySettingsTab />}
+      {activeTab === 'team' && <TeamSettingsTab />}
       {activeTab === 'contact' && <ContactSettingsTab />}
+      {activeTab === 'newsletter' && <NewsletterSettingsTab />}
       {activeTab === 'account' && <AccountTab />}
     </div>
   )

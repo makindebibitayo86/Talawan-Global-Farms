@@ -162,7 +162,7 @@ export default function ContactUs() {
   return (
     <section
       id="get-in-touch"
-      className="bg-canvas-alt px-3 pb-20 pt-28 md:px-6 md:pb-28 md:pt-40"
+      className="bg-canvas px-3 pb-20 pt-28 md:px-6 md:pb-28 md:pt-40"
     >
       <div className="mx-auto max-w-7xl">
         <div className="grid items-stretch gap-16 md:grid-cols-12 md:gap-x-10 lg:gap-x-16">

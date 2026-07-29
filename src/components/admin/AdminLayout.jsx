@@ -3,10 +3,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import {
-  ShoppingBasket, Mail, Images, Settings, LogOut, Loader2,
+  ShoppingBasket, Mail, Newspaper, Images, Settings, LogOut, Loader2,
   ChevronsLeft, ChevronsRight,
   LayoutTemplate, Info, Tractor, Package, GalleryThumbnails, Phone, Lock,
-  Sun, Moon,
+  Sun, Moon, Users,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import logoIcon from '../../assets/logo-icon-color.png'
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/admin/products', label: 'Products', icon: ShoppingBasket },
   { to: '/admin/messages', label: 'Messages', icon: Mail },
   { to: '/admin/gallery', label: 'Gallery', icon: Images },
+  { to: '/admin/team', label: 'Team', icon: Users },
 ]
 
 // Mirrors the tab list in AdminSettings.jsx — kept in sync manually since
@@ -30,8 +31,16 @@ const SETTINGS_TABS = [
   { key: 'farms', label: 'Farms', icon: Tractor },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'gallery', label: 'Gallery', icon: GalleryThumbnails },
+  { key: 'team', label: 'Team', icon: Users },
   { key: 'contact', label: 'Contact', icon: Phone },
+  { key: 'newsletter', label: 'Newsletter', icon: Mail },
   { key: 'account', label: 'Password', icon: Lock },
+]
+
+// Sub-nav for Messages — same pattern as SETTINGS_TABS above.
+const MESSAGES_TABS = [
+  { key: 'mail', label: 'Mail', icon: Mail },
+  { key: 'news', label: 'News', icon: Newspaper },
 ]
 
 const SIDEBAR_STORAGE_KEY = 'talawan-admin-sidebar-collapsed'
@@ -111,6 +120,7 @@ function Navbar({ onLogout, theme, onToggleTheme }) {
 
 function Sidebar({ collapsed, onToggle }) {
   const location = useLocation()
+  const isMessagesActive = location.pathname.startsWith('/admin/messages')
   const isSettingsActive = location.pathname.startsWith('/admin/settings')
 
   return (
@@ -122,24 +132,98 @@ function Sidebar({ collapsed, onToggle }) {
       )}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Admin sections">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+        {/* Products */}
+        <NavLink
+          to="/admin/products"
+          title="Products"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+              'justify-center px-0', // mobile: always icon-only, no expanded view
+              collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+              isActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
+            )
+          }
+        >
+          <ShoppingBasket className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          {!collapsed && <span className="hidden truncate md:inline">Products</span>}
+        </NavLink>
+
+        {/* Messages — parent link + Mail/News sub-nav, same pattern as Settings below */}
+        <div>
           <NavLink
-            key={to}
-            to={to}
-            title={label}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
-                'justify-center px-0', // mobile: always icon-only, no expanded view
-                collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
-                isActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
-              )
-            }
+            to="/admin/messages/mail"
+            title="Messages"
+            className={cn(
+              'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+              'justify-center px-0', // mobile: always icon-only, no expanded view
+              collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+              isMessagesActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
+            )}
           >
-            <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-            {!collapsed && <span className="hidden truncate md:inline">{label}</span>}
+            <Mail className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+            {!collapsed && <span className="hidden truncate md:inline">Messages</span>}
           </NavLink>
-        ))}
+
+          {isMessagesActive && (
+            <div className="mt-1 flex flex-col gap-1">
+              <span className="my-1 h-px w-full bg-line" />
+              {MESSAGES_TABS.map(({ key, label, icon: Icon }) => (
+                <NavLink
+                  key={key}
+                  to={`/admin/messages/${key}`}
+                  title={label}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-full px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+                      'justify-center px-0', // mobile: always icon-only
+                      collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+                      isActive && 'bg-amber-500 text-white hover:bg-amber-500 hover:text-white'
+                    )
+                  }
+                >
+                  <Icon className="h-[16px] w-[16px] shrink-0" strokeWidth={2} />
+                  {!collapsed && <span className="hidden truncate md:inline">{label}</span>}
+                </NavLink>
+              ))}
+              <span className="my-1 h-px w-full bg-line" />
+            </div>
+          )}
+        </div>
+
+        {/* Gallery */}
+        <NavLink
+          to="/admin/gallery"
+          title="Gallery"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+              'justify-center px-0', // mobile: always icon-only, no expanded view
+              collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+              isActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
+            )
+          }
+        >
+          <Images className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          {!collapsed && <span className="hidden truncate md:inline">Gallery</span>}
+        </NavLink>
+
+        {/* Team */}
+        <NavLink
+          to="/admin/team"
+          title="Team"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink',
+              'justify-center px-0', // mobile: always icon-only, no expanded view
+              collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3',
+              isActive && 'bg-primary text-canvas hover:bg-primary hover:text-canvas'
+            )
+          }
+        >
+          <Users className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          {!collapsed && <span className="hidden truncate md:inline">Team</span>}
+        </NavLink>
 
         <div>
           <NavLink
@@ -181,6 +265,7 @@ function Sidebar({ collapsed, onToggle }) {
                   {!collapsed && <span className="hidden truncate md:inline">{label}</span>}
                 </NavLink>
               ))}
+              <span className="my-1 h-px w-full bg-line" />
             </div>
           )}
         </div>

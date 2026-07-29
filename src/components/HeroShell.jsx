@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, Mouse } from 'lucide-react'
+import { Menu, X, ArrowRight, Mouse, ChevronDown } from 'lucide-react'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import logoIcon from '../assets/logo-icon-color.png'
@@ -8,11 +8,21 @@ import logoWordmark from '../assets/logo-wordmark-color.png'
 import { fetchSectionContent } from '../lib/siteContent'
 
 const NAV_LINKS = [
-  { label: 'Home', href: '#home' },
   { label: 'About Us', href: '#about' },
-  { label: 'Our Farms', href: '#farms' },
-  { label: 'Products', href: '#products' },
-  { label: 'Gallery', href: '#gallery' },
+  {
+    label: 'Meet Us',
+    dropdown: [
+      { label: 'Our Farms', href: '#farms' },
+      { label: 'Products', href: '#products' },
+    ],
+  },
+  {
+    label: 'Community',
+    dropdown: [
+      { label: 'Gallery', href: '#gallery' },
+      { label: 'Team', href: '#team' },
+    ],
+  },
 ]
 
 // Section key for this component's row group in `site_content`.
@@ -106,6 +116,7 @@ function buildHeroClipPath(width, height, notch, radius) {
 
 export default function HeroShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileSubOpen, setMobileSubOpen] = useState(false)
   const wrapperRef = useRef(null)
   const heroRef = useRef(null)
   const [heroSize, setHeroSize] = useState({ width: 0, height: 0 })
@@ -153,6 +164,7 @@ export default function HeroShell() {
   // Lock body scroll while the mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    if (!mobileOpen) setMobileSubOpen(false)
     return () => {
       document.body.style.overflow = ''
     }
@@ -233,24 +245,64 @@ export default function HeroShell() {
             {/* Nav + CTA group — kept together so the links sit close to the button */}
             <div className="hidden items-center lg:flex">
               <nav className="flex items-center" aria-label="Primary">
-                {NAV_LINKS.map((link, i) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      'group relative px-5 py-2 text-[13px] font-medium uppercase tracking-[0.08em] text-white/90 transition-colors',
-                      i !== 0 && 'border-l border-white/20'
-                    )}
-                  >
-                    <span className="inline-block transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:text-accent">
-                      {link.label}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-1/2 -bottom-0.5 h-[1.5px] w-[calc(100%-2.5rem)] origin-center -translate-x-1/2 scale-x-0 bg-accent transition-transform duration-300 ease-out group-hover:scale-x-100"
-                    />
-                  </a>
-                ))}
+                {NAV_LINKS.map((link, i) =>
+                  link.dropdown ? (
+                    <div
+                      key={link.label}
+                      className={cn(
+                        'group relative px-5 py-2',
+                        i !== 0 && 'border-l border-white/20'
+                      )}
+                    >
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-[13px] font-medium uppercase tracking-[0.08em] text-white/90 transition-colors"
+                      >
+                        <span className="inline-block transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:text-accent">
+                          {link.label}
+                        </span>
+                        <ChevronDown className="h-3 w-3 transition-transform duration-300 ease-out group-hover:rotate-180 group-hover:text-accent" strokeWidth={2} />
+                      </button>
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-1/2 -bottom-0.5 h-[1.5px] w-[calc(100%-2.5rem)] origin-center -translate-x-1/2 scale-x-0 bg-accent transition-transform duration-300 ease-out group-hover:scale-x-100"
+                      />
+
+                      {/* Dropdown panel — bridged by the pt-3 spacer so the hover chain
+                          survives the gap between trigger and panel. */}
+                      <div className="invisible absolute left-1/2 top-full z-40 w-48 -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 ease-out group-hover:visible group-hover:opacity-100">
+                        <div className="overflow-hidden rounded-2xl bg-canvas shadow-xl ring-1 ring-black/5">
+                          {link.dropdown.map((sub) => (
+                            <a
+                              key={sub.href}
+                              href={sub.href}
+                              className="block px-5 py-3 text-[13px] font-medium uppercase tracking-[0.06em] text-ink transition-colors hover:bg-line-soft hover:text-primary"
+                            >
+                              {sub.label}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        'group relative px-5 py-2 text-[13px] font-medium uppercase tracking-[0.08em] text-white/90 transition-colors',
+                        i !== 0 && 'border-l border-white/20'
+                      )}
+                    >
+                      <span className="inline-block transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:text-accent">
+                        {link.label}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-1/2 -bottom-0.5 h-[1.5px] w-[calc(100%-2.5rem)] origin-center -translate-x-1/2 scale-x-0 bg-accent transition-transform duration-300 ease-out group-hover:scale-x-100"
+                      />
+                    </a>
+                  )
+                )}
               </nav>
 
               {/* Right cluster */}
@@ -296,16 +348,55 @@ export default function HeroShell() {
                 className="overflow-hidden border-t border-line bg-canvas lg:hidden"
               >
                 <nav className="flex flex-col px-6 py-4" aria-label="Mobile primary">
-                  {NAV_LINKS.map((link) => (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileOpen(false)}
-                      className="border-b border-line-soft py-3 text-[15px] font-medium uppercase tracking-[0.06em] text-ink-soft transition-colors last:border-b-0 hover:text-primary"
-                    >
-                      {link.label}
-                    </a>
-                  ))}
+                  {NAV_LINKS.map((link) =>
+                    link.dropdown ? (
+                      <div key={link.label} className="border-b border-line-soft last:border-b-0">
+                        <button
+                          type="button"
+                          onClick={() => setMobileSubOpen((v) => !v)}
+                          aria-expanded={mobileSubOpen}
+                          className="flex w-full items-center justify-between py-3 text-[15px] font-medium uppercase tracking-[0.06em] text-ink-soft transition-colors hover:text-primary"
+                        >
+                          {link.label}
+                          <ChevronDown
+                            className={cn('h-4 w-4 transition-transform duration-300', mobileSubOpen && 'rotate-180')}
+                            strokeWidth={1.75}
+                          />
+                        </button>
+                        <AnimatePresence>
+                          {mobileSubOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25, ease: 'easeInOut' }}
+                              className="overflow-hidden"
+                            >
+                              {link.dropdown.map((sub) => (
+                                <a
+                                  key={sub.href}
+                                  href={sub.href}
+                                  onClick={() => setMobileOpen(false)}
+                                  className="block py-3 pl-4 text-[14px] font-medium uppercase tracking-[0.06em] text-ink-soft/80 transition-colors hover:text-primary"
+                                >
+                                  {sub.label}
+                                </a>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ) : (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="border-b border-line-soft py-3 text-[15px] font-medium uppercase tracking-[0.06em] text-ink-soft transition-colors last:border-b-0 hover:text-primary"
+                      >
+                        {link.label}
+                      </a>
+                    )
+                  )}
                   <a
                     href="#get-in-touch"
                     onClick={() => setMobileOpen(false)}

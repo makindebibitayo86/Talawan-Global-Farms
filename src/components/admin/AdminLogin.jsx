@@ -47,6 +47,16 @@ export default function AdminLogin() {
     })
   }
 
+  // Browser tab title for this route — restored on unmount so it doesn't
+  // leak into whatever page/route renders next (e.g. after navigating to /admin).
+  useEffect(() => {
+    const prevTitle = document.title
+    document.title = 'Login Gate - Talawan Global Farms'
+    return () => {
+      document.title = prevTitle
+    }
+  }, [])
+
   // If already logged in, skip straight past the login form.
   useEffect(() => {
     let cancelled = false
