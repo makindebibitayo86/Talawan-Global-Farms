@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Egg, Bird, TreePalm, Waves, X, MessageCircle, PlayCircle, ArrowUpRight, Loader2 } from 'lucide-react'
+import { Egg, Bird, TreePalm, Waves, X, MessageCircle, PlayCircle, ArrowUpRight, Loader2, Volume2, VolumeX } from 'lucide-react'
 import { buildWhatsAppLink } from '../lib/whatsapp'
 import { supabase } from '../lib/supabaseClient'
 
@@ -16,6 +16,26 @@ function safeParseArray(value) {
   } catch {
     return []
   }
+}
+
+const MOBILE_QUERY = '(max-width: 767px)'
+
+// Mirrors the desktop/mobile split of the modal's own layout (md: breakpoint)
+// so we know which of the two video panels is actually visible, and only
+// render/play a <video> there — the other panel falls back to the still image.
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_QUERY).matches : false
+  )
+
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY)
+    const handler = (e) => setIsMobile(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  return isMobile
 }
 
 // Farm content is admin-editable and lives in the "site_content" table
@@ -90,9 +110,12 @@ function FarmModal({ farm, onClose }) {
   }, [onClose])
 
   const [activeIndex, setActiveIndex] = useState(0)
+  const [isMuted, setIsMuted] = useState(true)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     setActiveIndex(0)
+    setIsMuted(true)
   }, [farm])
 
   if (!farm) return null
@@ -137,16 +160,30 @@ function FarmModal({ farm, onClose }) {
             at the top of the scrollable write-up below, so it scrolls away
             with the content instead of staying pinned. */}
         <div className="relative hidden bg-ink/5 md:block md:h-auto md:w-1/2">
-          {activeVideo ? (
-            <video
-              key={activeVideo}
-              src={activeVideo}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="h-full w-full object-cover"
-            />
+          {activeVideo && !isMobile ? (
+            <>
+              <video
+                key={activeVideo}
+                src={activeVideo}
+                autoPlay
+                loop
+                muted={isMuted}
+                playsInline
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setIsMuted((m) => !m)}
+                aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-sm backdrop-blur-sm transition hover:scale-105"
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" strokeWidth={2} />
+                ) : (
+                  <Volume2 className="h-4 w-4" strokeWidth={2} />
+                )}
+              </button>
+            </>
           ) : (
             <>
               <img
@@ -155,10 +192,12 @@ function FarmModal({ farm, onClose }) {
                 className="h-full w-full object-cover transition-opacity duration-200"
                 key={activeImage}
               />
-              <span className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-canvas/90 px-3 py-1.5 text-[12px] font-medium text-ink shadow-sm backdrop-blur-sm">
-                <PlayCircle className="h-3.5 w-3.5" strokeWidth={2} />
-                Video coming soon
-              </span>
+              {activeVideo ? null : (
+                <span className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-canvas/90 px-3 py-1.5 text-[12px] font-medium text-ink shadow-sm backdrop-blur-sm">
+                  <PlayCircle className="h-3.5 w-3.5" strokeWidth={2} />
+                  Video coming soon
+                </span>
+              )}
             </>
           )}
         </div>
@@ -171,16 +210,30 @@ function FarmModal({ farm, onClose }) {
                 to the card's rounded corners by the parent's overflow-hidden. */}
             <div className="-mx-5 -mt-5 mb-5 sm:-mx-6 sm:-mt-6 sm:mb-6 md:hidden">
               <div className="relative h-80 w-full bg-ink/5 sm:h-96">
-                {activeVideo ? (
-                  <video
-                    key={activeVideo}
-                    src={activeVideo}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="h-full w-full object-cover"
-                  />
+                {activeVideo && isMobile ? (
+                  <>
+                    <video
+                      key={activeVideo}
+                      src={activeVideo}
+                      autoPlay
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsMuted((m) => !m)}
+                      aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                      className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-sm backdrop-blur-sm transition hover:scale-105"
+                    >
+                      {isMuted ? (
+                        <VolumeX className="h-4 w-4" strokeWidth={2} />
+                      ) : (
+                        <Volume2 className="h-4 w-4" strokeWidth={2} />
+                      )}
+                    </button>
+                  </>
                 ) : (
                   <>
                     <img
@@ -189,10 +242,12 @@ function FarmModal({ farm, onClose }) {
                       className="h-full w-full object-cover transition-opacity duration-200"
                       key={activeImage}
                     />
-                    <span className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-canvas/90 px-3 py-1.5 text-[12px] font-medium text-ink shadow-sm backdrop-blur-sm">
-                      <PlayCircle className="h-3.5 w-3.5" strokeWidth={2} />
-                      Video coming soon
-                    </span>
+                    {activeVideo ? null : (
+                      <span className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-canvas/90 px-3 py-1.5 text-[12px] font-medium text-ink shadow-sm backdrop-blur-sm">
+                        <PlayCircle className="h-3.5 w-3.5" strokeWidth={2} />
+                        Video coming soon
+                      </span>
+                    )}
                   </>
                 )}
               </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, MessageCircle, ArrowUpRight, Egg, Bird, TreePalm, Waves } from 'lucide-react'
+import { X, MessageCircle, ArrowUpRight, Egg, Bird, TreePalm, Waves, Volume2, VolumeX } from 'lucide-react'
 import { buildWhatsAppLink } from '../lib/whatsapp'
 import { supabase } from '../lib/supabaseClient'
 import { fetchSectionContent } from '../lib/siteContent'
@@ -144,6 +144,12 @@ function ProductModal({ product, onClose }) {
     }
   }, [onClose])
 
+  const [isMuted, setIsMuted] = useState(true)
+
+  useEffect(() => {
+    setIsMuted(true)
+  }, [product])
+
   if (!product) return null
 
   const Icon = ICONS[product.icon_key] ?? Egg
@@ -182,15 +188,29 @@ function ProductModal({ product, onClose }) {
         {/* Photo panel */}
         <div className="relative h-64 w-full shrink-0 bg-ink/5 md:h-auto md:w-1/2">
           {product.video_path ? (
-            <video
-              key={product.video_path}
-              src={product.video_path}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="h-full w-full object-cover"
-            />
+            <>
+              <video
+                key={product.video_path}
+                src={product.video_path}
+                autoPlay
+                loop
+                muted={isMuted}
+                playsInline
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setIsMuted((m) => !m)}
+                aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-sm backdrop-blur-sm transition hover:scale-105"
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" strokeWidth={2} />
+                ) : (
+                  <Volume2 className="h-4 w-4" strokeWidth={2} />
+                )}
+              </button>
+            </>
           ) : (
             <img
               src={img(product.image_filename)}
